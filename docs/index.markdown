@@ -4,3 +4,7 @@
 
 layout: home
 ---
+# index
+
+## Links
+[about](../about/)
