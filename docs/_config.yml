@@ -22,12 +22,15 @@ title: Hi, I am watershade. Welcome to my pages.
 email: zjh.2008.09@gmail.com
 description: >- # this means to ignore newlines until "baseurl:"
   Hi, I am watershade. This websites will show my tecnology files about embedded hardwares/softwares/RTOS or linux and so on. Wish it is valueable to you. Thanks!
-baseurl: /docs # the subpath of your site, e.g. /blog
+baseurl: # the subpath of your site, e.g. /blog
 url: "watershade.github.io" #http://www.xsspae.cn
 github_username:  watershade
 
 # Build settings
-theme: pages-themes/leap-day@v0.2.0
+# theme: minima
+# plugins:
+#   - jekyll-feed
+remote_theme: pages-themes/leap-day@v0.2.0
 plugins:
   - jekyll-remote-theme
 
