@@ -1,8 +1,8 @@
 ---
-layout: page
 title: About ODYSSEY STM32MP135D
 permalink: /ODYSSEY-STM32MP135D/index/
 ---
+
 # ODYSSEY STM32MP135D
 
 

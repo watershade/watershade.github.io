@@ -2,9 +2,18 @@
 # Feel free to add content and custom Front Matter to this file.
 # To modify the layout, see https://jekyllrb.com/docs/themes/#overriding-theme-defaults
 
-layout: home
 ---
 # index
 
+
+
+
 ## Links
 [about](../about/)
+
+
+## CAN FD Knownledge
+[CAN FD位定时的思考](./CAN_FD/Bit_Timing/STM32的CAN%20FD位定时)
+
+## ODYSSEY-STM32MP135D
+[ODYSSEY-STM32MP135D主页](./ODYSSEY-STM32MP135D/index)
