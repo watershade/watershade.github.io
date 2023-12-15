@@ -19,5 +19,5 @@
 [ODYSSEY-STM32MP135D主页](./ODYSSEY-STM32MP135D/index)
 
 ## Collection
-[STM32CubeMX的图标生成脚本](./Collection/CUbeMX_Icon_In_Ubuntu)
-[写在Ubuntu输入法卡死之后](./Collection/when_ibus_is_stuck)
+* [STM32CubeMX的图标生成脚本](./Collection/CUbeMX_Icon_In_Ubuntu)
+* [写在Ubuntu输入法卡死之后](./Collection/when_ibus_is_stuck)
