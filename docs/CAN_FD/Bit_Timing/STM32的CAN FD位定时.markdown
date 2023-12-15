@@ -242,6 +242,8 @@ CAN选择了两种同步方式：硬同步（HARD SYNCHRONIZATION）和再同步
 |2|Data Time Seg1|1~32|TSEG1(D)|
 |3|Data Time Seg2|1~16|TSEG2(D)|
 |4|Data Sync Jump Width|1~16|SJW(D)|
+
+
 ------------------------------------
 
 基础参数我们暂时不讨论。这部分需要和CAN的时钟配置结合提供TQ。具体的计算没有什么需要特别强调的部分。
