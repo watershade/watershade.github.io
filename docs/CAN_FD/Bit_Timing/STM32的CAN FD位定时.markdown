@@ -27,7 +27,7 @@ _______________________________________
 
 下图以STM32G0B1的位定时为例来说明一下：
 
-![image.png](img/CAN配置.png)
+![image.png](img/CAN_FD_Config.png)
 <p style="text-align:center; color:orange">图1：CUBEMX中的FDCAN配置 </p>
 
 乍一看，你以为只有Bit Timing Parameters下面的才是和位定时相关的。但是CAN FD相关的位定时需要配置两部分的参数。下面我来详细说明一下。
