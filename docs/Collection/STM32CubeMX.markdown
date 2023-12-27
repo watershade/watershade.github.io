@@ -1,9 +1,9 @@
 ---
-title: STM32CubeMX的图标生成脚本
+title: STM32CubeMX的Ubuntu桌面图标生成脚本
 permalink: /Collection/CUbeMX_Icon_In_Ubuntu/
 ---
 
-# STM32CubeMX的图标生成脚本
+# STM32CubeMX的Ubuntu桌面图标生成脚本
 ## 一、概述
 每一次在Ubuntu上安装STM32CubeMX都会遇到桌面图标的问题。每次都要跑到相应目录下运行，十分繁琐。
 如果每次都要编写desktop文件倒也不难，但是有时候总是记错要CUbeMX_Icon_In_Ubuntu将放入的路径。有时候也忘记icon文件的位置。

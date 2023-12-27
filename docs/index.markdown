@@ -25,6 +25,7 @@ title: Catalog
 当然这些文章很多是菜鸟的时候写的，记录了一个菜鸟开发者遇到的一些问题。现在有了这个博客，我会将开发中的问题和感悟写下来。
 
 ## STM32 Knowledge
+* [STM32CubeMX的图标生成脚本](./Collection/CUbeMX_Icon_In_Ubuntu)
 * [STM32U5的UART单线通讯上拉电阻问题](/STM32/UART_Signle_Wire/)
 
 ## CAN FD Knownledge
@@ -34,7 +35,7 @@ title: Catalog
 * [ODYSSEY-STM32MP135D主页](./ODYSSEY-STM32MP135D/index)
 
 ## Collection
-* [STM32CubeMX的图标生成脚本](./Collection/CUbeMX_Icon_In_Ubuntu)
+
 * [写在Ubuntu输入法卡死之后](./Collection/when_ibus_is_stuck)
 
 
