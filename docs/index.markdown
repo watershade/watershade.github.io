@@ -13,7 +13,7 @@ title: Catalog
 
 对于还觉得麻烦的朋友请写邮件到我的邮箱zjh.2008.09@gmail.com,因为邮箱检查不够频繁。所以可能会很晚才能回复你的邮件。
 
-另：在CSDN的文章后续我会尽量慢慢移动过来。哪里主要是一些Linux相关的文章。如果你感兴趣，可以查看我的[CSDN博客](https://blog.csdn.net/watershade2010).
+另：在CSDN的文章后续我会尽量慢慢移动过来。那里主要是一些Linux相关的文章。如果你感兴趣，可以查看我的[CSDN博客](https://blog.csdn.net/watershade2010).
 
 
 ## STM32 Knowledge
