@@ -122,3 +122,5 @@ Apart from this, the communication protocol is similar to normal USART mode. Any
 可以看到无论输入还是输出其实如果配置为上拉那么信号不会因为方向而改变，那为什么内部上拉就不行呐？Rpu和外部电阻除了阻值不一样还有什么不一样？
 
 这个问题目前仍然悬而未决。
+
+<全文完>
