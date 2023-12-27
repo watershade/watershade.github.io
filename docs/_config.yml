@@ -21,9 +21,8 @@
 title: Hi, I am watershade. Welcome to my pages.
 email: zjh.2008.09@gmail.com
 description: >- # this means to ignore newlines until "baseurl:"
-  <p>Hi, I am watershade. This blog will record some of my technical articles. Wish it is valueable to you. Thanks!</p>
-  <p>My areas of focus include robotics and ROS, embedded SW/HW, linux, RTOS, IoT and computer languages (C/C++, Python, RUST).</p>
-  
+  Hi, I am watershade. This blog will record some of my technical articles. Wish it is valueable to you. Thanks!
+  My areas of focus include robotics and ROS, embedded SW/HW, linux, RTOS, IoT and computer languages (C/C++, Python, RUST).
 baseurl: # the subpath of your site, e.g. /blog
 url: "watershade.github.io" #http://www.xsspae.cn
 github_username:  watershade
