@@ -14,7 +14,14 @@ title: Catalog
 对于还觉得麻烦的朋友请写邮件到我的邮箱zjh.2008.09@gmail.com,因为邮箱检查不够频繁。所以可能会很晚才能回复你的邮件。
 
 另：在CSDN的文章后续我会尽量慢慢移动过来。那里主要是一些Linux相关的文章。如果你感兴趣，可以查看我的[CSDN博客](https://blog.csdn.net/watershade2010).
+我再ST论坛有更多关于STM32的文章，有一些还是有价值的。我可能后续也会备份一部分过来。当然你也可以查看[相关文章](https://shequ.stmicroelectronics.cn/forum.php?mod=guide&view=my&type=article&sortid=7).
+比如:
+* [明知故犯，遭遇滑铁卢~说一说pvPortMalloc](https://shequ.stmicroelectronics.cn/thread-625347-1-1.html)
+* [F4-Discovery连接MPU9250【MD6.12 keil移植](https://shequ.stmicroelectronics.cn/forum.php?mod=viewthread&tid=602861)
+* [永磁同步电机拆拆看](https://shequ.stmicroelectronics.cn/thread-628307-1-1.html)
+* [调试调到怀疑人生，heap我对你的误解有多深](https://shequ.stmicroelectronics.cn/thread-620093-1-1.html)
 
+当然这些文章很多是菜鸟的时候写的，记录了一个菜鸟开发者遇到的一些问题。现在有了这个博客，我会将开发中的问题和感悟写下来。
 
 ## STM32 Knowledge
 * [STM32U5的UART单线通讯上拉电阻问题](/STM32/UART_Signle_Wire/)
@@ -28,6 +35,7 @@ title: Catalog
 ## Collection
 * [STM32CubeMX的图标生成脚本](./Collection/CUbeMX_Icon_In_Ubuntu)
 * [写在Ubuntu输入法卡死之后](./Collection/when_ibus_is_stuck)
+
 
 ## About
 [关于本网站的实现](../about/)
