@@ -11,6 +11,8 @@
 ## Links
 [about](../about/)
 
+## STM32 Knowledge
+* [STM32U5的UART单线通讯上拉电阻问题](/STM32/UART_Signle_Wire/)
 
 ## CAN FD Knownledge
 * [CAN FD位定时的思考](./CAN_FD/Bit_Timing/STM32的CAN%20FD位定时)

@@ -17,8 +17,6 @@ Wish it is valueable for you.
 希望这些知识对你有用途。
 
 
-
-
 ## About Jekyll
 This website was created using jekllrb and currently uses the leap-day theme. Please forgive me for my experience with this website because of my inadvertent knowledge of web pages.
 
