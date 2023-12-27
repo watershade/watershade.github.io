@@ -14,7 +14,8 @@ title: Catalog
 对于还觉得麻烦的朋友请写邮件到我的邮箱zjh.2008.09@gmail.com,因为邮箱检查不够频繁。所以可能会很晚才能回复你的邮件。
 
 另：在CSDN的文章后续我会尽量慢慢移动过来。那里主要是一些Linux相关的文章。如果你感兴趣，可以查看我的[CSDN博客](https://blog.csdn.net/watershade2010).
-我再ST论坛有更多关于STM32的文章，有一些还是有价值的。我可能后续也会备份一部分过来。当然你也可以查看[相关文章](https://shequ.stmicroelectronics.cn/forum.php?mod=guide&view=my&type=article&sortid=7).
+
+我在ST论坛有更多关于STM32的文章，有一些还是有价值的。我可能后续也会备份一部分过来。当然你也可以查看[相关文章](https://shequ.stmicroelectronics.cn/forum.php?mod=guide&view=my&type=article&sortid=7).
 比如:
 * [明知故犯，遭遇滑铁卢~说一说pvPortMalloc](https://shequ.stmicroelectronics.cn/thread-625347-1-1.html)
 * [F4-Discovery连接MPU9250【MD6.12 keil移植](https://shequ.stmicroelectronics.cn/forum.php?mod=viewthread&tid=602861)
