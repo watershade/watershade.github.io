@@ -2,9 +2,9 @@
 # Feel free to add content and custom Front Matter to this file.
 # To modify the layout, see https://jekyllrb.com/docs/themes/#overriding-theme-defaults
 title: Catalog 
-permalink: /about/
 ---
 # Catalog/文章总览
+
 以下是本网站记录的个人文章，请点击文章标题查看。
 
 因为本文章没有反馈功能，如果你有任何问题可以在[issue](https://github.com/watershade/watershade.github.io/issues)里面提出，我将尽量解答。
