@@ -466,11 +466,7 @@ angular:
 $ ros2 topic pub /wu_gui/cmd_vel  geometry_msgs/msg/Twist  "{ linear: { x: 5.0, y: 0.0, z: 0.0 }, angular: { x: 0.0, y: 0.0, z: 1.732 }}"
 ```
 现在你可以看到一个旋转的乌龟：
-<div align=center>
-<img src="./img/turtle_twist.gif" alt="gif">
-</div>
-
-![旋转乌龟](img/turtle_twist.gif)
+![旋转乌龟](img/turtle_twist.gif#pic_center)
 <p style="text-align:center; color:orange">图4：旋转乌龟</p>
 
 ### 3.3 turtlesim remap的理解
