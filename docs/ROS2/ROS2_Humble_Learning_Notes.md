@@ -467,7 +467,7 @@ $ ros2 topic pub /wu_gui/cmd_vel  geometry_msgs/msg/Twist  "{ linear: { x: 5.0, 
 ```
 现在你可以看到一个旋转的乌龟：
 <div align=center>
-<img src="img/turtle_twist.gif">
+<img src="img/turtle_twist.gif" alt="gif">
 </div>
 <p style="text-align:center; color:orange">图4：旋转乌龟</p>
 
