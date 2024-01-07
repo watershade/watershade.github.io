@@ -118,6 +118,7 @@ cp -rL bsps/rpi_4_0_1_3_0/* {sd根目录}
 * 9:GND 连接串口的GND
 * 10:GPIO15(RXD) 连接串口的TXD
 你会发现输出如下所示：
+
 ```shell
 U-Boot 2023.10 (Jan 06 2024 - 19:32:58 +0800)
 
@@ -130,7 +131,7 @@ In:    serial,usbkbd
 Out:   serial,vidconsole
 Err:   serial,vidconsole
 Net:   
-Warning: ethernet@7d580000 MAC addresses don`t match:
+Warning: ethernet@7d580000 MAC addresses don’t match:
 Address in DT is                dc:a6:32:c8:21:09
 Address in environment is       dc:a6:32:07:b3:a4
 eth0: ethernet@7d580000
@@ -204,7 +205,6 @@ Thu Jan  1 00:00:01 1970: ipnet[44a0f0]: Error: ipcom_getsockaddrbyaddr failed g
 
 -> 
 ```
-
 
 
 ### 2.6 启动
