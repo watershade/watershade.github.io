@@ -466,6 +466,7 @@ angular:
 $ ros2 topic pub /wu_gui/cmd_vel  geometry_msgs/msg/Twist  "{ linear: { x: 5.0, y: 0.0, z: 0.0 }, angular: { x: 0.0, y: 0.0, z: 1.732 }}"
 ```
 现在你可以看到一个旋转的乌龟：
+
 ![旋转乌龟](img/turtle_twist.gif#pic_center)
 <p style="text-align:center; color:orange">图4：旋转乌龟</p>
 
@@ -474,10 +475,16 @@ $ ros2 topic pub /wu_gui/cmd_vel  geometry_msgs/msg/Twist  "{ linear: { x: 5.0, 
 教程中举例的两个remap指令如下：
 
 ```shell
+## 重定向node的名称
+ros2 run turtlesim turtlesim_node --ros-args --remap __node:=my_turtle
+
 ## 重定向teleop_key的操作对象
 ros2 run turtlesim turtle_teleop_key --ros-args --remap turtle1/cmd_vel:=turtle2/cmd_vel
 
 ```
+官方对于remap其实有[说明](https://design.ros2.org/articles/ros_command_line_arguments.html#name-remapping-rules)。remap的原型是`ros2 run some_package some_ros_executable --ros-args --remap from:=to`或者简写做`ros2 run some_package some_ros_executable --ros-args -r from:=to`.
+
+这个语句本身没有问题，只是from应该怎么填写是我的问题。比如第一条中的“__node”来自哪里？按照官方的说法这书与node的properities。携带有“__”标记应该是系统保留的参数。<font color='yellow'>但具体来自哪里我暂时还不知道。</font>
 
 ### 3.4 turtlesim spin
 turtlesim画圈指令：
