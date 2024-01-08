@@ -618,6 +618,9 @@ Hello assembler: 1+1=2
 
 目前的汽车市场已经开始接受Linux甚至Android，甚至人类在火星上第一台飞行器也是Linux的。这些选择我最初看来，总觉得有一种草草了事的感觉。目前看来似乎也是一种对于生态的妥协。包括ROS选择了使用用户广泛的Ubuntu作为tire1，也不能不说是一种妥协.但是未来能不能有一款开放而且强大的实时操作系统可以担负RTOS界的Linux呐？Wind River除非变成一个开放的基金会，否则Vx和Wind River Linux应该都不能担此重任。ThreadX挺好的，目前微软将它贡献给了eclipse基金会，不知道未来会不会有更加好的生态支持。还有没其它系统呐？我暂时还不知道。不过我还是由衷的希望这个局面早日来到。
 
+
+[ 全文完 | 2024.01.08 ]
+
 ## 附件
 * [官方下载链接](https://forums.windriver.com/t/vxworks-software-development-kit-sdk/43)
 * [VxWorks 7 SDK for Raspberry Pi 4](https://labs.windriver.com/downloads/wrsdk-vxworks7-docs/2309/README_raspberrypi4b.html)
