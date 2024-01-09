@@ -3,7 +3,7 @@ title: ROS2 Humble学习笔记
 permalink: /ROS2/ROS2_Humble_Learning_Note_1/
 ---
 
-# ROS2 Humble学习笔记
+# ROS2 Humble学习笔记 (1)
 
 [2024.01.05 正在编辑中，更新至3.2小节]
 
@@ -37,7 +37,7 @@ permalink: /ROS2/ROS2_Humble_Learning_Note_1/
 #### 2.1.1 基础安装和尝试
 Jetson Nano容器安装也是Nvidia官方支持的一部分。我们可以在他们的[链接](Jetson Containers)找到相应的说明。这个链接中包含多个ROS版本的Base、Core、Desktop镜像。
 具体的安装方法可以看上面的链接中的说明。这里简单枚举一下命令：
-```shell
+```bash
 #下载镜像到本地
 sudo docker pull dustynv/ros:humble-ros-base-l4t-r32.7.1
 
@@ -67,7 +67,7 @@ sudo docker run --runtime nvidia -it --rm --network=host dustynv/ros:humble-ros-
 
 ### 3.1 怎么查看turtlesim某个包的可执行文件
 在官方的示例中，我们看到ros2 run的基本格式如下：`ros2 run <package_name> <executable_name>`,但是当我们拿到一个package的时候怎么它的executable对象呐。其实和我们查看我们的环境中的的packages是类似的。
-```shell
+```bash
 # 查看pack命令
 ros2 pkg list
 
@@ -84,12 +84,12 @@ ros2 pkg executables turtlesim
 ```
 ### 3.2 深刻理解spawn操作
 在官方入门教程[Using turtlesim, ros2, and rqt](https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Introducing-Turtlesim/Introducing-Turtlesim.html#)那一章中指导我们利用rqt产生一个turtle，但是在看ros2入门21讲的时候我注意到它是利用命令行产生的另一个turtle。命令如下：
-```shell
+```bash
 ros2 service call /spawn turtlesim/srv/Spawn "{x: 2, y: 2, theta: 0.2, name: ''}"
 ```
 #### 3.2.1 追根溯源，弄懂怎么控制小乌龟
 但是这条命令的格式为什么是这样，如果我要自己编辑一个命令靠死记硬背肯定不行呀。其实这也不是很复杂，我跟着ros2的命令提示操作起来。
-```shell
+```bash
 # 1. 我们先看一下ros2都支持啥命令. 
 # 为了便于描述，我在自己输入的命令前加上了‘$ ’
 $ ros2 -h
@@ -250,12 +250,12 @@ string name
 ```
 到这里我们就基本了解了怎么使用spawn去产生另一个乌龟。这里还有一个问题是YAML是什么数据格式。我这里提供一个[菜鸟教程的链接](https://www.runoob.com/w3cnote/yaml-intro.html).YAML的语法还是有一些比较严格的规格的，可以使用vscode中的redhat的YAML插件来检查数据内容是否符合规格。一般在shell中使用YAML的flow style形式。和json类似，但key不使用引号包裹。
 根据上面的提示物品们就可以自己制作一个的命令,注意YAML语句需要用单引号或者双引号包裹：
-```shell
+```bash
 ros2 service call /spawn turtlesim/srv/Spawn "{ x: 6, y: 6, theta: 0.0, name: 'wu_gui' }"
 ```
 #### 3.2.2 举一反三，我们试着使用“/reset”服务
 按照上面类似的方法我们可以看一下/reset的用法：
-```shell
+```bash
 # 查询第二个参数
 $ ros2 service type /reset
 std_srvs/srv/Empty
@@ -274,7 +274,7 @@ $ ros2 service call /reset std_srvs/srv/Empty
 #### 3.2.3 扩展技能，使用action操作乌龟
 在3.2.1的最后我们使用service创造了另一只乌龟，不过在3.2.2中我们又将它清除了。现在我们再次重复3.2.1的操作创建另一只名字叫"wu_gui"的turtle。
 
-```shell
+```bash
 ## 1. 查询目前支持的action
 $ ros2 action -h
 usage: ros2 action [-h] Call `ros2 action <command> -h` for more detailed usage. ...
@@ -355,7 +355,7 @@ Goal finished with status: SUCCEEDED
 
 #### 3.2.4 继续折腾，使用topic和乌龟对话
 topic是ros2很重要的概念，turtlesim下面有很多topic。稍后我会展示cmd_vel这个Topic。
-```shell
+```bash
 # 1. 我们先看一下topic的功能
 $ ros2 topic -h
 usage: ros2 topic [-h] [--include-hidden-topics] Call `ros2 topic <command> -h` for more detailed usage. ...
@@ -474,7 +474,7 @@ $ ros2 topic pub /wu_gui/cmd_vel  geometry_msgs/msg/Twist  "{ linear: { x: 5.0, 
 
 教程中举例的两个remap指令如下：
 
-```shell
+```bash
 ## 重定向node的名称
 ros2 run turtlesim turtlesim_node --ros-args --remap __node:=my_turtle
 
@@ -484,13 +484,150 @@ ros2 run turtlesim turtle_teleop_key --ros-args --remap turtle1/cmd_vel:=turtle2
 ```
 官方对于remap其实有[说明](https://design.ros2.org/articles/ros_command_line_arguments.html#name-remapping-rules)。remap的原型是`ros2 run some_package some_ros_executable --ros-args --remap from:=to`或者简写做`ros2 run some_package some_ros_executable --ros-args -r from:=to`.
 
-这个语句本身没有问题，只是from应该怎么填写是我的问题。比如第一条中的“__node”来自哪里？按照官方的说法这书与node的properities。携带有“__”标记应该是系统保留的参数。<font color='yellow'>但具体来自哪里我暂时还不知道。</font>
+这个语句本身没有问题，只是from应该怎么填写是我的问题。比如第一条指令中的“__node”来自哪里？按照官方的说法这属于node的properities。携带有“__”标记应该是所有节点的通用参数。关于这些通用参数，我查询到[ROS2的一篇文章](https://design.ros2.org/articles/static_remapping.html)介绍了"__ns","__name","__node"这三种参数，分别表示namespace，name和node等。具体可点击上面的链接查看。我稍后可能会开一篇新的帖子介绍一下remap的详细参数。因为remap的机制似乎非常重要。
 
-### 3.4 turtlesim spin
-turtlesim画圈指令：
-```shell
-$ ros2 topic pub --rate 1 /turtle1/cmd_vel geometry_msgs/msg/Twist "{linear: {x: 2.0, y: 0.0, z: 0.0}, angular: {x: 0.0, y: 0.0, z: 1.8}}"
+
+第二条指令中的“turtle1/cmd_vel”是这个节点的publisher的一条。我们可以按照如下方法查看：
+```bash
+$ ros2 node list
+/teleop_turtle
+/turtlesim
+$ ros2 node info /teleop_turtle
+/teleop_turtle
+  Subscribers:
+    /parameter_events: rcl_interfaces/msg/ParameterEvent
+  Publishers:
+    /parameter_events: rcl_interfaces/msg/ParameterEvent
+    /rosout: rcl_interfaces/msg/Log
+    /turtle1/cmd_vel: geometry_msgs/msg/Twist
+  Service Servers:
+    /teleop_turtle/describe_parameters: rcl_interfaces/srv/DescribeParameters
+    /teleop_turtle/get_parameter_types: rcl_interfaces/srv/GetParameterTypes
+    /teleop_turtle/get_parameters: rcl_interfaces/srv/GetParameters
+    /teleop_turtle/list_parameters: rcl_interfaces/srv/ListParameters
+    /teleop_turtle/set_parameters: rcl_interfaces/srv/SetParameters
+    /teleop_turtle/set_parameters_atomically: rcl_interfaces/srv/SetParametersAtomically
+  Service Clients:
+
+  Action Servers:
+
+  Action Clients:
+    /turtle1/rotate_absolute: turtlesim/action/RotateAbsolute
+
 ```
+上图的Publishers中的一个标签就是“/turtle1/cmd_vel”。而这个标签正好指向它控制的那个乌龟。现在我们不妨先spawn一个名字叫wugui的turtle，我在3.2.1小节有介绍方法。然后我们新创建一个teleop_key指向这个乌龟。接着在另一个终端里查看一下新创建的teleop_key的节点信息。
+
+为了便于描述我在自己输入的指令前面添加了"$ ",如果你要复制指令需要去掉这个标志。输出的信息前面不添加任何内容。另外我目前已经打开了三个终端窗口，大家可以查看图5（Remap示例图）。我们将左侧窗口编号叫做#0，右侧上方叫做#1，右侧下方叫做#2.另外新打开一个终端叫做#3。
+
+现在在#2终端操作如下：
+```bash
+$ ros2 service call /spawn turtlesim/srv/Spawn "{ x: 6, y: 6, theta: 0.0, name: 'wu_gui' }"
+## 然后list一下topic，确保里面包含了你需要remap的目标
+$ ros2 topic list
+/parameter_events
+/rosout
+/turtle1/cmd_vel
+/turtle1/color_sensor
+/turtle1/pose
+/wu_gui/cmd_vel
+/wu_gui/color_sensor
+/wu_gui/pose
+
+## 接着将turtle_teleop_key的发布对象指向/wu_gui/cmd_vel
+$ ros2 run turtlesim turtle_teleop_key --ros-args --remap /turtle1/cmd_vel:=/wu_gui/cmd_vel
+```
+这条指令并不完美，因为如果你list一下node会发现重名问题。
+下面的在#3终端操作如下：
+```bash
+$ ros2 node list
+WARNING: Be aware that are nodes in the graph that share an exact name, this can have unintended side effects.
+/teleop_turtle
+/teleop_turtle
+/turtlesim
+```
+上面是我的显示，你看以看到重名问题提示。
+
+现在我们回到#2终端,让我们停止这个重命名的节点.可以键入ctrl+c或者q停止刚才的节点。然后我们在#2终端重新remap。
+```bash
+## 重新输入
+$ ros2 run turtlesim turtle_teleop_key --ros-args --remap __node:=teleop_wugui --remap /turtle1/cmd_vel:=/wu_gui/cmd_vel 
+
+## 你如果使用方向键，它确实可以控制乌龟的旋转
+```
+现在我们在#3终端操作如下：
+```bash
+## 我们回到刚才list node的节点再次执行
+$ ros2 node list
+/teleop_turtle
+/teleop_wugui
+/turtlesim
+## 现在再来看一下节点信息
+$ ros2 node info /teleop_wugui
+/teleop_wugui
+  Subscribers:
+    /parameter_events: rcl_interfaces/msg/ParameterEvent
+  Publishers:
+    /parameter_events: rcl_interfaces/msg/ParameterEvent
+    /rosout: rcl_interfaces/msg/Log
+    /wu_gui/cmd_vel: geometry_msgs/msg/Twist
+  Service Servers:
+    /teleop_wugui/describe_parameters: rcl_interfaces/srv/DescribeParameters
+    /teleop_wugui/get_parameter_types: rcl_interfaces/srv/GetParameterTypes
+    /teleop_wugui/get_parameters: rcl_interfaces/srv/GetParameters
+    /teleop_wugui/list_parameters: rcl_interfaces/srv/ListParameters
+    /teleop_wugui/set_parameters: rcl_interfaces/srv/SetParameters
+    /teleop_wugui/set_parameters_atomically: rcl_interfaces/srv/SetParametersAtomically
+  Service Clients:
+
+  Action Servers:
+
+  Action Clients:
+    /turtle1/rotate_absolute: turtlesim/action/RotateAbsolute
+```
+
+
+这里展示一下我的测试图：
+![remap_demo](img/remap_demo.png)
+<p style="text-align:center; color:orange">图5：Remap示例</p>
+
+然而，上述操作其实还是有一些副作用。尽管你可以通过方向键控制wugui，但是如果按G|B|V|C|D|E|R|T这些按键，控制的却是turtle1。我们需要继续优化这条指令。幸运的是我们在查看节点信息的时候已经发现了原因：action clients的标签还是/turtle1/rotate_absolute。我们通过名称也大概可以知道这个是关于控制旋转的动作。所以我们也remap一下它吧。这一次我们用间断的“-r”提到“--remap”当然还需要你使用Q或者Ctrl+C停止#2终端的执行。然后在#2终端执行如下操作：
+```shell
+$ ros2 run turtlesim turtle_teleop_key --ros-args \
+-r __node:=teleop_wugui \
+-r /turtle1/cmd_vel:=/wu_gui/cmd_vel \
+-r /turtle1/rotate_absolute:=/wu_gui/rotate_absolute
+```
+现在我们在#3终端操作如下：
+```shell
+## 我们再查看一下节点信息
+$ ros2 node info /teleop_wugui
+/teleop_wugui
+  Subscribers:
+    /parameter_events: rcl_interfaces/msg/ParameterEvent
+  Publishers:
+    /parameter_events: rcl_interfaces/msg/ParameterEvent
+    /rosout: rcl_interfaces/msg/Log
+    /wu_gui/cmd_vel: geometry_msgs/msg/Twist
+  Service Servers:
+    /teleop_wugui/describe_parameters: rcl_interfaces/srv/DescribeParameters
+    /teleop_wugui/get_parameter_types: rcl_interfaces/srv/GetParameterTypes
+    /teleop_wugui/get_parameters: rcl_interfaces/srv/GetParameters
+    /teleop_wugui/list_parameters: rcl_interfaces/srv/ListParameters
+    /teleop_wugui/set_parameters: rcl_interfaces/srv/SetParameters
+    /teleop_wugui/set_parameters_atomically: rcl_interfaces/srv/SetParametersAtomically
+  Service Clients:
+
+  Action Servers:
+
+  Action Clients:
+    /turtle1/rotate_absolute: turtlesim/action/RotateAbsolute
+
+```
+可以发现G|B|V|C|D|E|R|T这些按键控制的还是turtle1而不是wu_gui。我们看节点信息也可以看到Action Clients还是没有改变。
+我在一个issue里面提到了这个问题：[issue 1312](https://github.com/ros2/ros2/issues/1312)。你可以查看[那篇帖子的回答](https://github.com/ros2/ros2/issues/1312#issuecomment-1234710681).大概意思就是当时这个feature还没有实现，但是目前有一些解决方法。不过确实非常繁琐。你需要将action的feedback，status，cancel_goal，get_result，send_goal等信息都重新remap一下。因为这涉及到action，后面学到了再深入了解吧。
+
+### 3.4 node
+我们再来回到一个基础问题：node是什么？
 
 ### 3.5 daemon的作用
 我对daemon的作用不太了解，最后在查看 https://www.ncnynl.com/archives/202210/5572.html 和 https://answers.ros.org/question/327348/what-is-ros2-daemon/ 这两个网址后基本解决了这个问题。为了防止网址失效，将内容粘贴如下（内容稍有修改）：
@@ -540,7 +677,8 @@ Linux相关：
 * [Tmux使用指南](https://cgking.gitbook.io/linux/linux/tmux-shi-yong-shou-ce)
 
 其它：
-* [菜鸟教程的链接](https://www.runoob.com/w3cnote/yaml-intro.html)
+* [yaml菜鸟教程的链接](https://www.runoob.com/w3cnote/yaml-intro.html)
+* [tmux使用指南](https://www.ruanyifeng.com/blog/2019/10/tmux.html)
 
 
 <初稿写与2024.01 未完待续>
