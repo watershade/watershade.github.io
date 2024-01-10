@@ -759,7 +759,14 @@ ROS2入门教程-daemon简介
 
     "~"是所在的node节点命名空间的替代字符。类似与linux每个用户所在根目录就是使用"~".当然也不是完全一样。"~"的层深是比较灵活的。具体取决于node所在的命名空间深度。比如一个节点"jazz"所在的命名空间是"/music/modern".那"~"就可以表示这个节点所在的命名空间"/music/modern/jazz"的缩写,如果这个节点下的一个Topic叫做"Renewal",那么我们可以将他的Name叫做"~/Renewal",这等同于"/music/modern/jazz/Renewal".
 
+8. ***替换 (Substitutions)***
 
+   用"{}"包裹一个private名称。要求大括号不能嵌套，里面的内容只能包含英文字母和数字以及下划线。
+
+9. ***隐藏主题/服务名称 (Hidden Topic or Service Names)***
+Name的Token的首字母如果是“_”则表示这是一个隐藏的名称。类似于linux名称如果是一“.”开头的也会被隐藏。
+
+这一部分内容过于繁琐。就不再一一转述。
 
 ### 3.5 node
 我们再来回到一个基础问题：node是什么？
