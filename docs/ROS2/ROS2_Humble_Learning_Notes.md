@@ -470,6 +470,56 @@ $ ros2 topic pub /wu_gui/cmd_vel  geometry_msgs/msg/Twist  "{ linear: { x: 5.0, 
 ![旋转乌龟](img/turtle_twist.gif#pic_center)
 <p style="text-align:center; color:orange">图4：旋转乌龟</p>
 
+#### 3.2.5 数据类型
+在参考了[ROS Message](https://wiki.ros.org/msg)这篇文章后解决了前面提到的float64数据类型的问题。
+现在将相关的数据类型转述如下：
+|Primitive|Type|Serialization|C++|Python2|Python3|
+|:----|:----|:----|:----|:----|:----|
+|bool|unsigned|8-bit|int|uint8_t|bool|
+|int8|signed|8-bit|int|int8_t|int|
+|uint8|unsigned|8-bit|int|uint8_t|int|
+|int16|signed|16-bit|int|int16_t|int|
+|uint16|unsigned|16-bit|int|uint16_t|int|
+|int32|signed|32-bit|int|int32_t|int|
+|uint32|unsigned|32-bit|int|uint32_t|int|
+|int64|signed|64-bit|int|int64_t|long/int|
+|uint64|unsigned|64-bit|int|uint64_t|long/int|
+|float32|32-bit|IEEE|float|float|float|
+|float64|64-bit|IEEE|float|double|float|
+|string|ascii|string|std::string|str|bytes|
+|time|secs/nsecs|unsigned|32-bit|ints|ros::Time|rospy.Time|
+|duration|secs/nsecs|signed|32-bit|ints|ros::Duration|rospy.Duration|
+
+
+另一篇文章介绍了ROS2的[Built-in-types](https://docs.ros.org/en/humble/Concepts/Basic/About-Interfaces.html)，可能更加合适：
+
+| Type name | C++ | Python | DDS type |
+|---|---|---|---|
+| bool | bool | builtins.bool | boolean |
+| byte | uint8_t | builtins.bytes* | octet |
+| char | char | builtins.str* | char |
+| float32 | float | builtins.float* | float |
+| float64 | double | builtins.float* | double |
+| int8 | int8_t | builtins.int* | octet |
+| uint8 | uint8_t | builtins.int* | octet |
+| int16 | int16_t | builtins.int* | short |
+| uint16 | uint16_t | builtins.int* | unsigned short |
+| int32 | int32_t | builtins.int* | long |
+| uint32 | uint32_t | builtins.int* | unsigned long |
+| int64 | int64_t | builtins.int* | long long |
+| uint64 | uint64_t | builtins.int* | unsigned long long |
+| string | std::string | builtins.str | string |
+| wstring | std::u16string | builtins.str | wstring |
+
+
+另一个表格包含了利用内置类型的array类型：
+| Type name | C++ | Python | DDS type |
+|---|---|---|---|
+| static array | std::array&lt;T, N&gt; | builtins.list* | T[N] |
+| unbounded dynamic array | std::vector | builtins.list | sequence |
+| bounded dynamic array | custom_class&lt;T, N&gt; | builtins.list* | sequence&lt;T, N&gt; |
+| bounded string | std::string | builtins.str* | string |
+
 ### 3.3 turtlesim remap的理解
 
 教程中举例的两个remap指令如下：
@@ -626,11 +676,10 @@ $ ros2 node info /teleop_wugui
 可以发现G|B|V|C|D|E|R|T这些按键控制的还是turtle1而不是wu_gui。我们看节点信息也可以看到Action Clients还是没有改变。
 我在一个issue里面提到了这个问题：[issue 1312](https://github.com/ros2/ros2/issues/1312)。你可以查看[那篇帖子的回答](https://github.com/ros2/ros2/issues/1312#issuecomment-1234710681).大概意思就是当时这个feature还没有实现，但是目前有一些解决方法。不过确实非常繁琐。你需要将action的feedback，status，cancel_goal，get_result，send_goal等信息都重新remap一下。因为这涉及到action，后面学到了再深入了解吧。
 
-### 3.4 node
-我们再来回到一个基础问题：node是什么？
+### 3.4 daemon的作用
+前面短暂的提到了daemon,但是没有细讲。因为我对daemon的作用不太了解。最后在一番了解后，查到了https://www.ncnynl.com/archives/202210/5572.html 和 https://answers.ros.org/question/327348/what-is-ros2-daemon/ 这两篇文章。前者是对后者机械的翻译。但基本上解决了这个问题：daemon到底干啥的。
 
-### 3.5 daemon的作用
-我对daemon的作用不太了解，最后在查看 https://www.ncnynl.com/archives/202210/5572.html 和 https://answers.ros.org/question/327348/what-is-ros2-daemon/ 这两个网址后基本解决了这个问题。为了防止网址失效，将内容粘贴如下（内容稍有修改）：
+为了防止网址失效，将内容粘贴如下（内容稍有修改）：
 ```txt
 ROS2入门教程-daemon简介
 说明:
@@ -648,6 +697,53 @@ ROS2入门教程-daemon简介
 ```
 归纳起来就是多了一个独立节点作为DDS graph information信息的收集者，可以减少发现目标节点的时长，但不会降低发现目标节点的机会（机率）。
 
+### 3.5 名称/Name
+先来闲聊几句。我记得我以前的公司里有两个“高峰”，而且都是一个组里面的。所以只好将其中一个叫做“大高峰”，一个叫做“小高峰”。想想一下，如果一个学校有数百上千人，可能有好几个人的名字都叫“张三”，也可能只有一个“张三”。如果高一八班“张三”的家长需要传达室的人帮忙找这个“张三”，应该会喊“高一八班的张三请听到广播后到传达室，有人找你”。如果他只是喊“张三请听到广播后到传达室，有人找你”，可能会出现同时出现几个张三。我们小区有几个菜鸟驿站，我有时候就糊里糊涂的走错到其他的驿站里，找一圈包裹之后才发现走错了。因为你通过类似“3-1-5678”这样的编号，是每一个菜鸟驿站都会用的。所以如果我看的更加仔细一点，可能就会发现这个编号前面还写了那个地方。说了这么一通，你应该会明白。起名字可能没有那么简单。那么对于ROS2来说“Name”是如何作为唯一标识符，在整个通讯过程中发挥作用的。他是如何避免名称重复的问题的。
+
+为了了解这些知识，我参照了[Topic和Service的Name](https://design.ros2.org/articles/topic_and_service_names.html)，[ROS Wiki的Name](https://wiki.ros.org/Names)和[ROS2的ramapping](https://design.ros2.org/articles/static_remapping.html)等文章。
+
+在ROS范围内涉及到不同的Name。
+1. ***ROS1的Name规则：***
+  * 首字符必须是英文字母([a-z|A-Z]),波浪号(~)或者正斜杠(/)。
+  * 后续字符可以是数字和英文字母 ([0-9|a-z|A-Z]), 下划线(_)或者正斜杠(/)。
+  * 例外：基本名称（Basename）只能有数字和英文字母 ([0-9|a-z|A-Z]), 下划线(_)构成。不能包含波浪号(~)和正斜杠(/)。基本名称（Basename）的首字母只能是英文字母。
+
+2. ***ROS2的Name规则：***
+  * 不能为空
+  * 可能包含字母数字字符 ([0-9|a-z|A-Z])、下划线 (_) 或正斜杠 (/)
+  * 可以使用平衡花括号 ({}) 进行替换
+  * 可以以波形符 (~) 开头，即私有命名空间替换字符
+  * 不得以数字字符 ([0-9])开头
+  * 不得以正斜杠 (/)结尾
+  * 不得包含任意数量的重复正斜杠 (/)
+  * 不得包含任意数量的重复下划线 (_)
+  * 必须用正斜杠 (/) 将波形符 (~) 与名称的其余部分分开，即`~/foo`不是`~foo`
+  * 使用时必须有平衡的花括号 ({})，即`{sub}/foo`但不能是`{sub/foo`也不能是`/foo}`
+
+3. ***DDS的Name规则***
+  * TOPICNAME - 主题名称（TOPICNAME）是主题（TOPIC）的标识符，定义为 "a-z"、"A-Z"、"0-9"、"_"的任意字符串，但不得以数字开头。和ROS1对于基本名称的要求一致。
+
+
+
+
+在开始正文之前，我们先引入几个概念：
+* FQN(Fully Qualified Name): 完全限定名称。以“/”开始。
+* Relative Name: 相对名称.不以“/”开始。
+* Token：标记。“/”之间的字符。（注：如果在开头和结尾应该只有一侧有“/”。我的理解）
+* BaseName：基本名称，基名。是整个名称（Name）中的最后一个Token.
+* Namespace：命名空间。是整个名称（Name）基本名称前面的所有内容。
+
+
+
+
+### 3.5 node
+我们再来回到一个基础问题：node是什么？
+
+### 3.6 Topic/Service/Action
+Topic、Service、Action这是ROS2三种通讯方式。然后这却很好的反映了ROS2设计者的思考。现在我们就详细的了解一下这三个概念。
+
+
+https://design.ros2.org/articles/actions.html
 
 ## 四、深入学习
 
@@ -667,6 +763,11 @@ ROS相关：
 * [humble Beginning](https://docs.ros.org/en/humble/Tutorials.html)
 * [古月居机器人教程](https://book.guyuehome.com/)
 * [古月机器人入门21讲](https://class.guyuehome.com/p/t_pc/course_pc_detail/column/p_628f4288e4b01c509ab5bc7a)
+* [ROS2 Design](https://design.ros2.org/)
+* [Action](https://design.ros2.org/articles/actions.html)
+* [ROS Command Line Arguments](https://design.ros2.org/articles/ros_command_line_arguments.html)
+* [Remapping Names](https://design.ros2.org/articles/static_remapping.html)
+* [the names of Topic and Service](https://design.ros2.org/articles/topic_and_service_names.html)
 
 Jetson相关：
 * [Jetson Containers](https://github.com/dusty-nv/jetson-containers)
