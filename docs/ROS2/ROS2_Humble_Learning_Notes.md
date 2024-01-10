@@ -584,7 +584,7 @@ $ ros2 topic list
 /wu_gui/pose
 
 ## 接着将turtle_teleop_key的发布对象指向/wu_gui/cmd_vel
-$ ros2 run turtlesim turtle_teleop_key --ros-args --remap /turtle1/cmd_vel:=/wu_gui/cmd_vel
+$ ros2 run turtlesim turtle_teleop_key --ros-args --remap turtle1/cmd_vel:=wu_gui/cmd_vel
 ```
 这条指令并不完美，因为如果你list一下node会发现重名问题。
 下面的在#3终端操作如下：
@@ -600,7 +600,7 @@ WARNING: Be aware that are nodes in the graph that share an exact name, this can
 现在我们回到#2终端,让我们停止这个重命名的节点.可以键入ctrl+c或者q停止刚才的节点。然后我们在#2终端重新remap。
 ```bash
 ## 重新输入
-$ ros2 run turtlesim turtle_teleop_key --ros-args --remap __node:=teleop_wugui --remap /turtle1/cmd_vel:=/wu_gui/cmd_vel 
+$ ros2 run turtlesim turtle_teleop_key --ros-args --remap __node:=teleop_wugui --remap turtle1/cmd_vel:=wu_gui/cmd_vel 
 
 ## 你如果使用方向键，它确实可以控制乌龟的旋转
 ```
@@ -644,8 +644,8 @@ $ ros2 node info /teleop_wugui
 ```shell
 $ ros2 run turtlesim turtle_teleop_key --ros-args \
 -r __node:=teleop_wugui \
--r /turtle1/cmd_vel:=/wu_gui/cmd_vel \
--r /turtle1/rotate_absolute:=/wu_gui/rotate_absolute
+-r turtle1/cmd_vel:=wu_gui/cmd_vel \
+-r turtle1/rotate_absolute:=wu_gui/rotate_absolute
 ```
 现在我们在#3终端操作如下：
 ```shell
@@ -702,6 +702,16 @@ ROS2入门教程-daemon简介
 
 为了了解这些知识，我参照了[Topic和Service的Name](https://design.ros2.org/articles/topic_and_service_names.html)，[ROS Wiki的Name](https://wiki.ros.org/Names)和[ROS2的ramapping](https://design.ros2.org/articles/static_remapping.html)等文章。
 
+在开始正文之前，我们先引入几个概念：
+* FQN(Fully Qualified Name): 完全限定名称。以“/”开始。
+* Relative Name: 相对名称.不以“/”开始。
+* Token：标记。“/”之间的字符。（注：如果在开头和结尾应该只有一侧有“/”。我的理解）
+* BaseName：基本名称，基名。是整个名称（Name）中的最后一个Token.
+* Namespace：命名空间。是整个名称（Name）基本名称前面的所有内容。
+
+一个名称由命名空间（Namespace）和基本名称（BaseName）组成。命名空间的作用大概等同于我前面讲到的“高一八班”，基本名称就类似于我前面讲的“张三”。命名空间给了基本名称一个限定范围。指出了在那个范围内使用这个基本名称。所以在命名空间Namespace）限定的范围内应该只能有一个基本名称（Basename）。
+
+
 在ROS范围内涉及到不同的Name。
 1. ***ROS1的Name规则：***
   * 首字符必须是英文字母([a-z|A-Z]),波浪号(~)或者正斜杠(/)。
@@ -719,20 +729,35 @@ ROS2入门教程-daemon简介
   * 不得包含任意数量的重复下划线 (_)
   * 必须用正斜杠 (/) 将波形符 (~) 与名称的其余部分分开，即`~/foo`不是`~foo`
   * 使用时必须有平衡的花括号 ({})，即`{sub}/foo`但不能是`{sub/foo`也不能是`/foo}`
+  * 替换的内容，即平衡大括号 ({}) 内的字符串，与名称的规则非常相似。替换的内容不能为空，可包含字母数字字符（[0-9|a-z|A-Z]）和下划线 (_)，不得以数字字符（[0-9]）开头
+
+      可以看出ROS2相比ROS1还是有一些不同的地方。比如首字符可以是“_”,也添加了大括号等。但有些要求也更加具体。比如不能连续多个“/”和“_”.除了开头出现“~/”,中间不能出现“~/”等。
 
 3. ***DDS的Name规则***
   * TOPICNAME - 主题名称（TOPICNAME）是主题（TOPIC）的标识符，定义为 "a-z"、"A-Z"、"0-9"、"_"的任意字符串，但不得以数字开头。和ROS1对于基本名称的要求一致。
 
+4. ***完全限定名称FQN***
 
+    除了ROS2中对于名称的限制之外，FQN还包含一些额外限制：
+  * 前面提到FDN必须以“/”开头。
+  * 不得包含波形符 ( ~) 或大括号 ( {})
 
+5. ***统一资源定位符 (URL)***
 
-在开始正文之前，我们先引入几个概念：
-* FQN(Fully Qualified Name): 完全限定名称。以“/”开始。
-* Relative Name: 相对名称.不以“/”开始。
-* Token：标记。“/”之间的字符。（注：如果在开头和结尾应该只有一侧有“/”。我的理解）
-* BaseName：基本名称，基名。是整个名称（Name）中的最后一个Token.
-* Namespace：命名空间。是整个名称（Name）基本名称前面的所有内容。
+    此外，主题和服务名称可以以统一资源定位符（URL）格式表示，以进一步消除资源名称的歧义。主题名称前面可以有rostopic://方案前缀，并且服务名称前面可以有rosservice://方案前缀。例如，绝对名称/foo也可以表示为带有 的主题rostopic:///foo或带有 的服务rosservice:///foo。请注意三重正斜杠 ( /)，它的样式与该方案类似file://。相对名称foo/bar可以用 表示（作为主题）rostopic://foo/bar。
 
+6. ***命名空间 (Namespace)***
+  一个Topic或者Service的Name除了ROS2的基本约束之外，还有的约束如下：
+  * 可以被分隔符“/”分隔成多个Token
+  * 决不能“/”作为结尾
+
+    正如前面所说一个Name是由最后一个Token和前面的Namespace组成。比如`/foo/bar/baz`这个name的`baz`是Basename, `/foo/bar`是命名空间。特殊的情况是比如这样一个Name：`/foo`，它的basename是foo,命名空间是`/`。这个`/`称作根命名空间。这和Linux的根目录命名很像。
+
+    这里也顺便讲一下“Global Name”和“Relative Name”。以“/”开头的Name叫做“Global Name”，反之不以“/”开头的Name叫做“Relative Name”。Relative Name是相对于创建它的node而言的Name.它的Global Name应该由创建它的Node的Name和Relative Name拼接而成。比如创建`apple/redfuji`这个Topic或者Service的Node的命名空间是`/Rosaceae`，那么这个Topic或者Service的Global Name就是`/Rosaceae/apple/redfuji`。如果你熟悉Linux的目录结构，会发现这两者其实很类似。
+
+7. ***私有命名空间替换字符 (Private Namespace Substitution Character)***
+
+    "~"是所在的node节点命名空间的替代字符。类似与linux每个用户所在根目录就是使用"~".当然也不是完全一样。"~"的层深是比较灵活的。具体取决于node所在的命名空间深度。比如一个节点"jazz"所在的命名空间是"/music/modern".那"~"就可以表示这个节点所在的命名空间"/music/modern/jazz"的缩写,如果这个节点下的一个Topic叫做"Renewal",那么我们可以将他的Name叫做"~/Renewal",这等同于"/music/modern/jazz/Renewal".
 
 
 
