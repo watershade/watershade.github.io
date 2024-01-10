@@ -56,4 +56,6 @@ plugins:
 #   - vendor/gems/
 #   - vendor/ruby/
 
+google_analytics: google-site-verification=KVgQRm97IlAd_mRGAtZm4jHkLUoBfd1v39-3kH9oSKE
+
 markdown: kramdown
