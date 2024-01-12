@@ -764,18 +764,161 @@ ROS2入门教程-daemon简介
    用"{}"包裹一个private名称。要求大括号不能嵌套，里面的内容只能包含英文字母和数字以及下划线。
 
 9. ***隐藏主题/服务名称 (Hidden Topic or Service Names)***
-Name的Token的首字母如果是“_”则表示这是一个隐藏的名称。类似于linux名称如果是一“.”开头的也会被隐藏。
 
-这一部分内容过于繁琐。就不再一一转述。
+   Name的Token的首字母如果是“_”则表示这是一个隐藏的名称。类似于linux名称如果是一“.”开头的也会被隐藏。
+
+10. ***ROS创建的消息在DDS中的Namespace前缀 (ROS Specific Namespace Prefix)***
+   在ros中创建的Topic、Services、Action或者Paramter消息在DDS中都会加上Namespace前缀`rX`，以此区分彼此。`X`是一个字母。具体的规则如下：
+    | ROS Subsystem        | Prefix |
+    |----------------------|--------|
+    | ROS Topics           | rt     |
+    | ROS Service Request  | rq     |
+    | ROS Service Response | rr     |
+    | ROS Service          | rs     |
+    | ROS Parameter        | rp     |
+    | ROS Action           | ra     |
+
+   比如：
+
+    | ROS Name                      | DDS Topic                       |
+    |-------------------------------|---------------------------------|
+    | /foo                          | rt/foo                          |
+    | rostopic:///foo/bar           | rt/foo/bar                      |
+    | /robot1/camera_left/image_raw | rt/robot1/camera_left/image_raw |
+
+    了解上述规则便于后面通过受到的消息去排查各种问题。
+    
+    另外DDS主题的长度不得超过256个字符。因此，ROS主题的长度（包括命名空间层次结构、主题的基本名称和任何 ros 特定前缀）不得超过256个字符，因为它直接映射为DDS主题。当链接到rmw_connext_c或rmw_connext_cpp时，服务名称不能超过185个字符，包括命名空间层次结构和任何ros特定前缀。
+
+
+消息相关的内容内容很多，细节又过于繁琐。就不再一一转述。
+
+
 
 ### 3.5 node
-我们再来回到一个基础问题：node是什么？
+我们再来回到一个基础问题：node是什么?按照官方的解释是：
+```txt
+Each node in ROS should be responsible for a single, modular purpose, e.g. controlling the wheel motors or publishing the sensor data from a laser range-finder. Each node can send and receive data from other nodes via topics, services, actions, or parameters.
+每个ROS的节点都负责单一模块化的目的。比如空着车轮电机或者从激光测距仪发布传感器数据。每个节点都能够通过Topics（主题）、Services（服务）、actions（动作）或者prameters（参数）从其他节点发送或者接受数据。
+
+A full robotic system is comprised of many nodes working in concert. In ROS 2, a single executable (C++ program, Python program, etc.) can contain one or more nodes.
+一个完整的机器人系统是由许多协同工作的节点构成的。在ROS2中，一个可执行程序可以容纳一个或多个节点。
+
+A node is a fundamental ROS 2 element that serves a single, modular purpose in a robotics system.
+级诶但是ROS2的基础元素，在整个机器人系统中既有单一模块化的目的。
+```
+其实上面的问题很清晰的解释了节点的目的：single,modular.但没有讲目的，节点的设计目的是解耦合。每个节点具有独立模块化的功能，才能方便相互组合但又能相互拆分工作。以turtlesim来说，它把turtle的生成展示做成一个node,把teleop_key做成了另一个node.
+
+其实如果我们只是单独记住概念可能没有意义。 更重要的是后面要自己要怎么定义自己的node.怎么确保它功能的模块化和单一性（解耦）。
 
 ### 3.6 Topic/Service/Action
-Topic、Service、Action这是ROS2三种通讯方式。然后这却很好的反映了ROS2设计者的思考。现在我们就详细的了解一下这三个概念。
+讲述这部分之前，需要说明这部分的笔记除了参考[ROS2入门教程相章节](https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Understanding-ROS2-Topics/Understanding-ROS2-Topics.html)外，还主要参考了[ros2 action design](https://design.ros2.org/articles/actions.html).
+
+Topic、Service、Action这是ROS2三种通讯方式。这三种通讯方式很好的反映了ROS2设计者的思考。现在我们就详细的了解一下这三个概念。
+
+#### 3.6.1 ROS Graph/ROS图
+在开始所有之前，我们先来了解一下ROS Graph. 后续我们将它叫做ROS图或者ROS拓扑图。
+
+“ROS Graph”是由同时处理数据的 ROS2元素组成的网络。它包括所有可执行文件以及它们之间的连接，如果要将它们全部映射出来并可视化的话。需要说明的是这是一个虚拟概念，是一种形象化表示网络之间通讯的方式。
+
+可以使用“rqt_graph”去形象化显示ROS2中各个节点之间的通讯关系。下图是展示我们在3.3小节中呈现的网络节点拓扑图。实际上可以显示更加复杂的图。具体的用法，慢慢尝试吧。
+![rqt graph demo](img/rqt_graph_demo.png)
+<p style="text-align:center; color:orange">图6：rqt graph demo</p>
+
+上图圆圈包裹的是三个节点：/teleop_turtle,/teleop_wugui,/turtlesim.而/turtle1/cmd_vel和/wu_gui/cmd_vel这两个是/turtlesim正在发布的主题。`**/_action/status`和 `**/_action/feedback`则是/turtlesim反馈的动作状态和回应。因为节点是临时刷新的。很难捕捉正在执行的的短暂动作。但是需要说明的是`**/_action/status`和`**/_action/feedback`其实是隐藏的topic.（action的一种实现方法）
+
+你可以通过如下命令查看到它：
+```bash
+$ ros2 topic list
+/parameter_events
+/rosout
+/turtle1/cmd_vel
+/turtle1/color_sensor
+/turtle1/pose
+/wu_gui/cmd_vel
+/wu_gui/color_sensor
+/wu_gui/pose
+
+$ ros2 topic list --include-hidden-topics
+/parameter_events
+/rosout
+/turtle1/cmd_vel
+/turtle1/color_sensor
+/turtle1/pose
+/turtle1/rotate_absolute/_action/feedback
+/turtle1/rotate_absolute/_action/status
+/wu_gui/cmd_vel
+/wu_gui/color_sensor
+/wu_gui/pose
+/wu_gui/rotate_absolute/_action/feedback
+/wu_gui/rotate_absolute/_action/status
+```
+可以明显看到隐藏的节点就是`**/_action/feedback`和`**/_action/status`这4个主题。
 
 
-https://design.ros2.org/articles/actions.html
+#### 3.6.2 Topic/主题
+在官方入门教程中会展示这样一张图：
+![发布到多个节点的主题](img/Topic-MultiplePublisherandMultipleSubscriber.gif) 
+<p style="text-align:center; color:orange">图7：发布到多个节点的主题</p>
+
+ROS2将复杂的系统分解成许多模块化节点(Node)。主题(Topic)是ROS图(ROS Graph)的重要元素，是节点交换信息的总线。Topic的发布者在某个Topic上发布消息，订阅了这个Topic的都会收到这个Topic更新的消息。可以从上图看出，Topic的通讯方向是单向的。Topic的发布消息后，订阅者并不会回应自己是否收到了Topic的更新消息。在实际实验中，消息发布节点可能并没有启动，但是不影响订阅者事先订阅某个主题。同样订阅者也可以随时订阅或者取消订阅某个Topic.当没有订阅者时，发布者并不需要因此就取消想某个Topic发布消息。
+
+需要再次强调的发布者和订阅者的数量均可以是1个或者多个，甚至0个。比如我们可以查询到：
+```bash
+$ ros2 topic info /parameter_events
+Type: rcl_interfaces/msg/ParameterEvent
+Publisher count: 3
+Subscription count: 3
+$ ros2 topic info /rosout
+Type: rcl_interfaces/msg/Log
+Publisher count: 3
+Subscription count: 0
+$ ros2 topic info /turtle1/rotate_absolute/_action/status
+Type: action_msgs/msg/GoalStatusArray
+Publisher count: 1
+Subscription count: 1
+```
+这一节入门教程还演示了pub的多种用法：
+```bash
+## 乌龟动了一次，但是具体多长时间，暂时还不知道
+$ ros2 topic pub --once /turtle1/cmd_vel geometry_msgs/msg/Twist "{linear: {x: 2.0, y: 0.0, z: 0.0}, angular: {x: 0.0, y: 0.0, z: 1.8}}"
+publisher: beginning loop
+publishing #1: geometry_msgs.msg.Twist(linear=geometry_msgs.msg.Vector3(x=2.0, y=0.0, z=0.0), angular=geometry_msgs.msg.Vector3(x=0.0, y=0.0, z=1.8))
+
+## 乌龟动了3次，这里的3是-t制定的
+$ ros2 topic pub -t=3 /turtle1/cmd_vel geometry_msgs/msg/Twist "{linear: {x: 2.0, y: 0.0, z: 0.0}, angular: {x: 0.0, y: 0.0, z: 1.8}}"
+publisher: beginning loop
+publishing #1: geometry_msgs.msg.Twist(linear=geometry_msgs.msg.Vector3(x=2.0, y=0.0, z=0.0), angular=geometry_msgs.msg.Vector3(x=0.0, y=0.0, z=1.8))
+
+publishing #2: geometry_msgs.msg.Twist(linear=geometry_msgs.msg.Vector3(x=2.0, y=0.0, z=0.0), angular=geometry_msgs.msg.Vector3(x=0.0, y=0.0, z=1.8))
+
+publishing #3: geometry_msgs.msg.Twist(linear=geometry_msgs.msg.Vector3(x=2.0, y=0.0, z=0.0), angular=geometry_msgs.msg.Vector3(x=0.0, y=0.0, z=1.8))
+$ ros2 topic pub --rate 1 /turtle1/cmd_vel geometry_msgs/msg/Twist "{linear: {x: 2.0, y: 0.0, z: 0.0}, angular: {x: 0.0, y: 0.0, z: 1.8}}"
+publisher: beginning loop
+publishing #1: geometry_msgs.msg.Twist(linear=geometry_msgs.msg.Vector3(x=2.0, y=0.0, z=0.0), angular=geometry_msgs.msg.Vector3(x=0.0, y=0.0, z=1.8))
+
+publishing #2: geometry_msgs.msg.Twist(linear=geometry_msgs.msg.Vector3(x=2.0, y=0.0, z=0.0), angular=geometry_msgs.msg.Vector3(x=0.0, y=0.0, z=1.8))
+
+publishing #3: geometry_msgs.msg.Twist(linear=geometry_msgs.msg.Vector3(x=2.0, y=0.0, z=0.0), angular=geometry_msgs.msg.Vector3(x=0.0, y=0.0, z=1.8))
+
+publishing #4: geometry_msgs.msg.Twist(linear=geometry_msgs.msg.Vector3(x=2.0, y=0.0, z=0.0), angular=geometry_msgs.msg.Vector3(x=0.0, y=0.0, z=1.8))
+
+publishing #5: geometry_msgs.msg.Twist(linear=geometry_msgs.msg.Vector3(x=2.0, y=0.0, z=0.0), angular=geometry_msgs.msg.Vector3(x=0.0, y=0.0, z=1.8))
+
+publishing #6: geometry_msgs.msg.Twist(linear=geometry_msgs.msg.Vector3(x=2.0, y=0.0, z=0.0), angular=geometry_msgs.msg.Vector3(x=0.0, y=0.0, z=1.8))
+
+publishing #7: geometry_msgs.msg.Twist(linear=geometry_msgs.msg.Vector3(x=2.0, y=0.0, z=0.0), angular=geometry_msgs.msg.Vector3(x=0.0, y=0.0, z=1.8))
+
+```
+现在我们可以看一下现实dubug信息的节点graph：
+![graph_with_debug](img/graph_with_debug.png)
+<p style="text-align:center; color:orange">图8：带dubug节点的Graph</p>
+
+从图中可以看到daemon这个节点。还有一个临时的节点名称叫做`_roscli_114715`.数字部分是随机的。这个节点以`_`开头，说明是隐藏节点。同样的daemon节点，也是以`_`开头的。还有一个当前正在使用的rqt_graph这个工具临时产生的节点，只是它不是以`_`开头的。你可以使用`ros2 node list -a`去查看包含隐藏节点的所有节点。
+
+#### 3.6.3 Services/服务
+
+
 
 ## 四、深入学习
 
@@ -807,11 +950,13 @@ Jetson相关：
 
 
 Linux相关：
+* [Tmux使用教程](https://www.ruanyifeng.com/blog/2019/10/tmux.html)
 * [Tmux使用指南](https://cgking.gitbook.io/linux/linux/tmux-shi-yong-shou-ce)
+
 
 其它：
 * [yaml菜鸟教程的链接](https://www.runoob.com/w3cnote/yaml-intro.html)
-* [tmux使用指南](https://www.ruanyifeng.com/blog/2019/10/tmux.html)
+
 
 
 <初稿写与2024.01 未完待续>

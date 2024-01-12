@@ -12,6 +12,10 @@ permalink: /ROS2/The_Detail_Of_ROS2/
 ## ROS2为什么要Remap
 Remap是干什么的，为啥要Remap.这是我们接触到Remap应该会问的第一个问题。
 
+## Remap能做什么
+
+## Remap语法
+
 
 <文章正在撰写中，敬请期待。>
 
