@@ -934,7 +934,53 @@ Serive的命令行语法，这里就不再细讲。前面我们在3.2节中其�
 
 
 #### 3.6.5 Parameter/参数
+param就是节点的节点的参数(parameter)或者设置(setting)。这是这些参数某些可变的性质的具体取值组成的组合。以比如/turtlesim这个节点的背景颜色。param中的某个参数的具体取值(value)类型可以是整形(integers), 浮点(floats), 布尔(booleans), 字符串(strings), 和 列表(lists)等.具体可以看前面各种ros2的数据类型。 
 
+
+`ros2 param`的有7个子命令。`ros2 param list`用来枚举所有节点的param.`ros2 param describe`用来描述某个节点的某个参数的具体信息。
+`ros2 param get`和`ros2 param set`这一组构成获取和设置某个参数具体取值的闭环。额外一个子命令`ros2 param delete`可以删除node的某个参数。这些参数的具体用法不再赘述。可以附加`-h`去查询命令的用法。
+
+`ros2 param dump`和`ros2 param load`这一组参数构成了参数文件保存和加载的闭环，具体参数使用方法这里不再详解。需要注意一点是，保存参数文件(dump)的路径有两种制定方式：
+```bash
+## 第一种使用--output-dir OUTPUT_DIR来指定路径
+$ ros2 param dump --help
+usage: ros2 param dump [-h] [--spin-time SPIN_TIME] [-s] [--no-daemon]
+                       [--include-hidden-nodes] [--output-dir OUTPUT_DIR]
+                       [--print]
+                       node_name
+
+Show all of the parameters of a node in a YAML file format
+
+positional arguments:
+  node_name             Name of the ROS node
+
+options:
+  -h, --help            show this help message and exit
+  --spin-time SPIN_TIME
+                        Spin time in seconds to wait for discovery (only
+                        applies when not using an already running daemon)
+  -s, --use-sim-time    Enable ROS simulation time
+  --no-daemon           Do not spawn nor use an already running daemon
+  --include-hidden-nodes
+                        Consider hidden nodes as well
+  --output-dir OUTPUT_DIR
+                        DEPRECATED: The absolute path where to save the
+                        generated file
+  --print               DEPRECATED: Does nothing.
+
+## 第二种采用标准输出（stdout）方法，比如官方示例
+$ ros2 param dump /turtlesim > turtlesim.yaml
+
+## 如果两种方法同时用，第一种方法无效，具体可自行尝试
+```
+
+除了上面在node运行时加载（load）参数文件去动态改变node的属性的方法，还有一种在节点启动时自动加载参数文件的方法。具体是采用`ros2 run`后面添加`--ros-args --params-file`的方法。细节可参考[这里](https://design.ros2.org/articles/ros_command_line_arguments.html#multiple-parameter-assignments).命令形式如下：
+```bash
+ros2 run <package_name> <executable_name> --ros-args --params-file <file_name>
+```
+
+
+注：本部分文档除了参考官方[入门教程Param部分](https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Understanding-ROS2-Parameters/Understanding-ROS2-Parameters.html)还参照了官方关于[Param的概念介绍](https://docs.ros.org/en/humble/Concepts/Basic/About-Parameters.html)。
 
 ## 四、深入学习
 
