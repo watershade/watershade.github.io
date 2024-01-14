@@ -16,6 +16,16 @@ permalink: /ROS2/ROS2_Humble_Learning_Note_1/
 好了，现在开始学习吧。愿计划可以达成。
 
 ## 二、安装
+在安装ROS2之前，需要先明确一个概念。ROS尽管是机器人操作系统的含义。但是本质上ROS并不是一个操作系统（Operation System）。我们不妨看看官方在回答[Why ROS2?](https://docs.ros.org/en/foxy/_downloads/2a9c64e08982f3709e23d20e5dc9f294/ros2-brochure-ltr-web.pdf)是怎么回答这个问题的：
+```txt
+ROS 2 (Robot Operating System 2) is an open source software development kit for robotics applications. The purpose of ROS 2 is to offer a standard software platform to developers across industries that will carry them from research and prototyping through to deployment and production. ROS 2 builds on the success of ROS 1, which is used today in myriad robotics applications around the world.
+
+ROS2 是一个用于机器人应用的开源软件开发工具。ROS2 的目的是为各行各业的开发者提供一个标准软件平台，使它们在这个平台上完成从研究、原型开发到部署和生产全流程工作。ROS2是建立在ROS1成功的基础之上，ROS1如今已经被用于全世界五花八门的机器人应用中。
+```
+所以ROS2首先是一个软件开发平台，因此你就不会纠结于为什么ROS这个“Operating System”为什么可以寄生与Linux、MacOS和Windows之上。甚至可以用于RTOS中。那么既然ROS2是一个开发平台，就意味着它公共了从研究到生产整个全流程可用的工具。也提供了编译和部署等工具。实际上ROS2也提供了三个不同尺度的Packages，它们是：Core、Base和Desktop.
+
+另外需要关注的一点，ROS2的核心之一是解决多种应用的解耦合（独立）和集成。它的方法之一是使用DDS, 所以DDS是ROS2的一个核心中间件。这里暂时先对DDS不做详细的说明。（主要是我暂时也没有完全搞懂DDS）
+
 为了安装humble，我的计算机目前安装的Ubuntu22.04，这也是一个LTS版本。安装过程并不复杂，我按照官方的教程在笔记本（AMD64）和Raspberry Pi 4（ARM64）。
 
 但是在我的Jetson Nano上遇到了问题。这是因为Nvidia对于Jetson Nano的支持并不积极，目前Nvidia的JetPack5（基于ubuntu20.04）支持的是orin系列和AVG系列。似乎JetPack 6(基于ubuntu22.04)也已经预发布了。似乎还继续支持orin和AVG系列。但按照我们对于Nvidia的了解，对于orin的支持也仅到JetPack6. Ubuntu 24.04将会是2024年另一个LTS版本，厂家的程序可能会延后半年到一年。所以nvidia未来的JetPack7可能会在2024年底或者2025年发布。相应的新Jetson硬件也应该会在2024年发布。所以如果需要购买Jetson，我们可以再等一等。暂时还是设法让Jetson Nano对humble进行支持。下面这几张图是Nvidia的产品和软件Roadmap，我觉得很讽刺的是支持的最后年限并不意味着软件和系统也跟着做相应的支持。
@@ -931,11 +941,61 @@ Serive的命令行语法，这里就不再细讲。前面我们在3.2节中其�
 注：<font color='yellow'>官方文档里面将这种通讯模式叫做：“call-and-response model”，即“调用和响应模型”。而不是客户端/服务器（C/S）模型。而将Action叫做C/S模型。</font>具体的原因我暂时还不知道。可能我对C/S的模型有误解。后面在仔细了解吧。但是我们大概先了解这种具体情况。
 
 #### 3.6.4 Action/动作
-Action是ROS2中三中通讯类型的最后一个（前面我们讲了Topic和Service）。也是三个当中最复杂的那个，其本质上是借助Topic和Service一起组成的。我们不妨想思考一件事情：当我们想让机器人旋转到某个目标角度，应该如何和机器人进行通讯？首先，我们必须告诉机器人，我们的目标（旋转到X度）。光这样还不行，因为机器人到底执行没有执行这个动作呐？所以如果受到这个请求，还需要回应说：“东东怪，东东怪，我是东东药，你的请求我已经收到，现在我就瞄准到35度”。然而到底这个动作有没有完成我怎么知道？如果某个任务需要未知长度的时间，或者后面的动作需要前面的动作完成方能执行怎么办？一种办法是，请求方连续请求：“大哥，你现在转到哪里了？”？响应方回应：“我转到21.5度了”？然后连续不断的请求回应。这当然也是一种办法，但是有没有更好的方法？当然有，响应方可以每隔一定时间或者没完成一个小目标就向请求方发送目前自己旋转的角度。这样请求方就没有必要，每次都请求。是不是这样就万无一失了？当然不是？有一种可能性，响应方在完成某个步骤之后就停止了。但是并不一定完成了任务。这时候就需要有查询结果的需求。除此之外，还可能在执行过程中需要暂停或者取消当前的动作。而这些都需要这个action支持某种服务。说了这么多，可能不够直观。那么我们不妨看一看官方的示意图。
+Action是ROS2中三中通讯类型的最后一个（前面我们讲了Topic和Service）。也是三个当中最复杂的那个，其本质上是借助Topic和Service一起组成的。我们不妨想思考一件事情：当我们想让机器人旋转到某个目标角度，应该如何和机器人进行通讯？首先，我们必须告诉机器人，我们的目标（旋转到X度）：“Mayday，Mayday，Mayday！东东药，东东药，我是东东怪。我现在需要你瞄准35度”。光这样还不行，因为机器人到底执行没有执行这个动作呐？所以如果受到这个请求，还需要回应说：“东东怪，东东怪，我是东东药，你的请求我已经收到，现在我就瞄准到35度”。然而到底这个动作有没有完成我怎么知道？如果某个任务需要未知长度的时间，或者后面的动作需要前面的动作完成方能执行怎么办？一种办法是，请求方连续请求：“大哥，你现在转到哪里了？”？响应方回应：“我转到21.5度了”？然后连续不断的请求回应。这当然也是一种办法，但是有没有更好的方法？当然有，响应方可以每隔一定时间或者没完成一个小目标就向请求方发送目前自己旋转的角度。这样请求方就没有必要，每次都请求。是不是这样就万无一失了？当然不是？有一种可能性，响应方在完成某个步骤之后就停止了。但是并不一定完成了任务。这时候就需要有查询结果的需求。除此之外，还可能在执行过程中需要暂停或者取消当前的动作。而这些都需要这个action支持某种服务。说了这么多，可能不够直观。那么我们不妨看一看官方的示意图。
 ![发布到多个节点的主题](img/Action-SingleActionClient.gif) 
 <p style="text-align:center; color:orange">图9：动作示意图</p>
 
 这幅图中的动作由三个部分组成：目标（Goal），反馈（Feedback）和结果（Result）。其实Action的必要三元素。目标（Goal）实际是一个服务（Service）。动作的发起者是这个服务的客户端（Client），它向动作的请求者，目前担当这个服务的服务器（Server）发出服务请求。通过Goal服务，动作的发起者就向接收者发出了动作的请求，并携带了动作的目标值。而动作的接收者则向发起者回应具体这个目标请求是否被接收。第二部分反馈（Feedback）实际是一个Topic.动作的发起者订阅这个主题（Topic）,动作的接收者发布这个主题。具体内容是以某种形式去告知action的进度。第三部分结果（Result）也是一个服务（Service）。和目标（Goal）服务类似：动作的发起者是这个服务的客户端（Client）;它向动作的请求者，目前担当这个服务的服务器（Server）发出服务请求。而动作的接收者则向发起者回应动作的执行结果。需要说明的是Action是可以被取消（Cancel）的。这一点和Service不同。因此Service适合需要快速（或者一次性）执行的任务（Task），而Action往往适合需要多步骤或者长时间执行的任务（Task）。
+
+现在我们不妨以`/turtlesim`这个node为例，来看一下action的具体情况。当然我们首先需要用`ros2 run turtlesim turtlesim_node`以打开一个`/turtlesim`节点。然后我们来看一下具体情况：
+```bash
+## 1. 我们可以看到现在我们已经启动了一个action
+$ ros2 action list
+/turtle1/rotate_absolute
+
+## 2. 我们看一看现在有什么service
+$ ros2 service list --include-hidden-services 
+/clear
+/kill
+/reset
+/spawn
+/turtle1/rotate_absolute/_action/cancel_goal
+/turtle1/rotate_absolute/_action/get_result
+/turtle1/rotate_absolute/_action/send_goal
+/turtle1/set_pen
+/turtle1/teleport_absolute
+/turtle1/teleport_relative
+/turtlesim/describe_parameters
+/turtlesim/get_parameter_types
+/turtlesim/get_parameters
+/turtlesim/list_parameters
+/turtlesim/set_parameters
+/turtlesim/set_parameters_atomically
+
+## 3. 我们看一看现在有什么topic
+$ ros2 topic list --include-hidden-topics 
+/parameter_events
+/rosout
+/turtle1/cmd_vel
+/turtle1/color_sensor
+/turtle1/pose
+/turtle1/rotate_absolute/_action/feedback
+/turtle1/rotate_absolute/_action/status
+```
+我们可以看到name中包含名字中包含`_action`的隐藏token的service有三个：
+```bash
+/turtle1/rotate_absolute/_action/cancel_goal
+/turtle1/rotate_absolute/_action/get_result
+/turtle1/rotate_absolute/_action/send_goal
+```
+名字中包含`_action`的隐藏token的topic有两个，分别是：
+```bash
+/turtle1/rotate_absolute/_action/feedback
+/turtle1/rotate_absolute/_action/status
+```
+send_goal和cancel_goal组成了action的第一部分：目标（Goal）; feedback和status组成了action的第二部分反馈（feedback）；get_result组成了action的第三部分结果（Result）.理论上我们可以在动作执行的过程中去监控这几个状态的信息。
+
+这一部分的入门教程还介绍了action的很多命令行用法。我们前面详细讲过。这里就不再赘述。也介绍了/turtle1/rotate_absolute这个动作的发布者订阅者等等详细信息。如果有需要可以看入门教程。
 
 
 注：本部分文档除了参考官方[入门教程Action部分](https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Understanding-ROS2-Actions/Understanding-ROS2-Actions.html)还参照了官方关于[Action的设计相关的思考](https://design.ros2.org/articles/actions.html)。
@@ -988,6 +1048,9 @@ ros2 run <package_name> <executable_name> --ros-args --params-file <file_name>
 
 
 注：本部分文档除了参考官方[入门教程Param部分](https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Understanding-ROS2-Parameters/Understanding-ROS2-Parameters.html)还参照了官方关于[Param的概念介绍](https://docs.ros.org/en/humble/Concepts/Basic/About-Parameters.html)。
+
+### 3.7 rqt
+
 
 ## 四、深入学习
 
