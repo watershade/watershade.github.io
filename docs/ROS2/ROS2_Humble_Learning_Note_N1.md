@@ -1050,7 +1050,57 @@ ros2 run <package_name> <executable_name> --ros-args --params-file <file_name>
 注：本部分文档除了参考官方[入门教程Param部分](https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Understanding-ROS2-Parameters/Understanding-ROS2-Parameters.html)还参照了官方关于[Param的概念介绍](https://docs.ros.org/en/humble/Concepts/Basic/About-Parameters.html)。
 
 ### 3.7 rqt
+rqt在入门教程最开始其实已经介绍了，这个工具可以可视化的调试Service、Topic和Active等信息，同时提供其它一些开发功能。具体需要慢慢了解。rqt目前有三个部分组成：rqt, rqt_common_plugins和rqt_robot_plugins插件。正如你了解的那样，你可以在shell中输入`rqt`来启动rqt_gui程序。初次之外你还可以通过`rqt run {pkg_name}`来运行rqt相关的程序。具体支持什么程序，你可以通过`rqt pkg list | grep rqt`来查询。
+```bash
+$ ros2 pkg list | grep rqt
+rqt_action
+rqt_bag
+rqt_bag_plugins
+rqt_common_plugins
+rqt_console
+rqt_controller_manager
+rqt_graph
+rqt_gui
+rqt_gui_cpp
+rqt_gui_py
+rqt_image_view
+rqt_joint_trajectory_controller
+rqt_msg
+rqt_plot
+rqt_publisher
+rqt_py_common
+rqt_py_console
+rqt_reconfigure
+rqt_robot_steering
+rqt_runtime_monitor
+rqt_service_caller
+rqt_shell
+rqt_srv
+rqt_tf_tree
+rqt_topic
 
+# 你还可以通过下面这条命令去查询每个pkg的executables程序，以rqt_console为例
+$ ros2 pkg executables rqt_console
+rqt_console rqt_console
+```
+#### 3.7.1 rqt_console
+你可以使用`ros2 run rqt_console rqt_console`去启动这个可执行程序。启动后会显示一个简单的界面，这个界面纵向分布三个信息显示子窗口：log messages, exclusion filters和highlighting messages。下图展示了turtlesim启动后rqt_console捕捉到的消息。
+![rqt console demo](img/rqt_console_demo.png)
+<p style="text-align:center; color:orange">图10：rqt console示意图</p>
+
+exclusion filter支持屏蔽Debug/Info/Warn/Error/Fatal等五种等级不同的消息中的一种或多种，当然也可以不屏蔽任何消息。也支持屏蔽某个Node的消息，或者特定的某些消息。
+* Fatal messages indicate the system is going to terminate to try to protect itself from detriment.
+* Error messages indicate significant issues that won’t necessarily damage the system, but are preventing it from functioning properly.
+* Warn messages indicate unexpected activity or non-ideal results that might represent a deeper issue, but don’t harm functionality outright.
+* Info messages indicate event and status updates that serve as a visual verification that the system is running as expected.
+* Debug messages detail the entire step-by-step process of the system execution.
+
+可以在应用启动的时候设置loggin level，具体可参考[remap的logging level章节。](https://design.ros2.org/articles/ros_command_line_arguments.html#logging-level-assignments)。命令格式是`ros2 run turtlesim turtlesim_node --ros-args --log-level {LEVEL}`.这里的{LEVEL}可以说是DEBUG,INFO,WARN,ERROR,FATAL这五个参数中的一个。
+
+rqt_console非常有用，通过追查日志消息可以帮助你调试和问题溯源。
+
+#### 3.7.2 ？
+正如上面所显示的那样，rqt其实还有很多更有用的应用，比如rqt_controller_manager。目前我对ROS2的了解还比较浅显。后面有机会再研究rqt更多的工具。
 
 ## 四、深入学习
 
@@ -1075,6 +1125,7 @@ ROS相关：
 * [ROS Command Line Arguments](https://design.ros2.org/articles/ros_command_line_arguments.html)
 * [Remapping Names](https://design.ros2.org/articles/static_remapping.html)
 * [the names of Topic and Service](https://design.ros2.org/articles/topic_and_service_names.html)
+* [rqt wiki](https://wiki.ros.org/rqt)
 
 Jetson相关：
 * [Jetson Containers](https://github.com/dusty-nv/jetson-containers)
