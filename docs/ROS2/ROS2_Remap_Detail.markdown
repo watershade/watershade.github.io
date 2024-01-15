@@ -1,6 +1,6 @@
 ---
 title: ROS2的Remap机制详解
-permalink: /ROS2/The_Detail_Of_ROS2/
+permalink: /ROS2/The_Detail_Of_Remap/
 ---
 
 # ROS2的Remap机制详解

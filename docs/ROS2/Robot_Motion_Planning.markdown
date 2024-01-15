@@ -1,6 +1,6 @@
 ---
 title: Robot Motion Planning Knowledge Collection
-permalink: /ROS2/The_Detail_Of_ROS2/
+permalink: /ROS2/Motion_Planning_Collection/
 ---
 
 # Robot Motion Planning Knowledge Collection
