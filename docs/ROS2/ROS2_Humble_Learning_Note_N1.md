@@ -1095,12 +1095,41 @@ exclusion filter支持屏蔽Debug/Info/Warn/Error/Fatal等五种等级不同的�
 * Info messages indicate event and status updates that serve as a visual verification that the system is running as expected.
 * Debug messages detail the entire step-by-step process of the system execution.
 
-可以在应用启动的时候设置loggin level，具体可参考[remap的logging level章节。](https://design.ros2.org/articles/ros_command_line_arguments.html#logging-level-assignments)。命令格式是`ros2 run turtlesim turtlesim_node --ros-args --log-level {LEVEL}`.这里的{LEVEL}可以说是DEBUG,INFO,WARN,ERROR,FATAL这五个参数中的一个。
+可以在应用启动的时候设置loggin level，具体可参考[remap的logging level章节。](https://design.ros2.org/articles/ros_command_line_arguments.html#logging-level-assignments)。命令格式是`ros2 run turtlesim turtlesim_node --ros-args --log-level {LEVEL}`.这里的{LEVEL}可以是DEBUG,INFO,WARN,ERROR,FATAL这五个参数中的一个。
 
 rqt_console非常有用，通过追查日志消息可以帮助你调试和问题溯源。
 
-#### 3.7.2 ？
+#### 3.7.2 Others
 正如上面所显示的那样，rqt其实还有很多更有用的应用，比如rqt_controller_manager。目前我对ROS2的了解还比较浅显。后面有机会再研究rqt更多的工具。
+
+### 3.8 launching nodes/启动多节点
+在前面我们提到几个机器人包含了多个执行独立任务的节点。但是如果每个节点都要通过打开一个终端然后使用`ros2 run`来启动，并设置复杂的参数。那么整个工作将是繁琐的。所以ROS2提供了一个应用程序来一步启动多个预先设置好的任务，这个命令就是`ros2 launch`。launch来一步启动的核心就是编写启动文件（launch file）。启动文件（launch file）支持XML，YAML和python。具体可以参照[启动文件编写教程](https://docs.ros.org/en/humble/How-To-Guides/Launch-file-different-formats.html)。launch的简单用法是`ros2 launch <package_name> <launch_file_name>`或者`ros2 launch <path_to_launch_file>`.
+
+我在按照官方教程运行时，因为不小心让两个pub交替向同一个topic发布最终出现了一个很有趣的模式：
+![pub in turn](img/pub_in_turn.gif)
+<p style="text-align:center; color:orange">图11：轮流Pub的有趣Pattern</p>
+当然修正后两只乌龟相互反向运动。
+
+#### 3.8.1 Launch File Format/启动文件格式
+XML格式的启动文件在ROS1中就引入了，但是并不完全一样。具体细节非常复杂，可以查看[启动文件的迁移向导](https://docs.ros.org/en/humble/How-To-Guides/Migrating-from-ROS1/Migrating-Launch-Files.html).在ROS2中新引入python的方式。开发者可以根据自己的偏好来开发，但是python能够带来比YAML和XML更加灵活的实现。具体来说：
+* Python 是一种脚本语言，因此您可以在启动文件中使用这种语言及其库。
+* ros2/launch（一般启动功能）和 ros2/launch_ros（ROS2 特定启动功能）都是用Python编写的，因此你可以访问XML和YAML可能无法提供的较低级别的启动功能。
+
+现在来看一下如何编写一个启动文件：
+1. 搞清楚自己的需求
+2. 确定要启动的节点的清单
+3. 每个节点的命名空间是否需要修改
+4. 每个节点的参数是否需要修改
+
+
+
+### 3.8.2 the design of launch files
+这部分参考了[官方launch的设计文档](https://design.ros2.org/articles/roslaunch.html) 
+
+
+
+
+注：本部分文档除了参考官方[入门教程Launch部分](https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Launching-Multiple-Nodes/Launching-Multiple-Nodes.html)还参照了官方关于[不同格式的Launch文件的介绍](https://docs.ros.org/en/humble/How-To-Guides/Launch-file-different-formats.html)。官方还有一个更全面介绍[launch file的入门教程](https://docs.ros.org/en/humble/Tutorials/Intermediate/Launch/Launch-Main.html).
 
 ## 四、深入学习
 
@@ -1126,6 +1155,9 @@ ROS相关：
 * [Remapping Names](https://design.ros2.org/articles/static_remapping.html)
 * [the names of Topic and Service](https://design.ros2.org/articles/topic_and_service_names.html)
 * [rqt wiki](https://wiki.ros.org/rqt)
+* [ROS 2 launch tutorials](https://docs.ros.org/en/humble/Tutorials/Intermediate/Launch/Launch-Main.html)
+* [Launch Files Format](https://docs.ros.org/en/humble/How-To-Guides/Launch-file-different-formats.html)
+
 
 Jetson相关：
 * [Jetson Containers](https://github.com/dusty-nv/jetson-containers)
