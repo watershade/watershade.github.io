@@ -1262,6 +1262,12 @@ $ ros2 bag play multi_topic_2
 ![bag playback gif](img/bag_playback_2.gif)
 <p style="text-align:center; color:orange">图13：bag回放的轨迹与原始轨迹的对比图2</p>
 
+### 3.10 QoS
+
+QoS: Quality of Service，即服务质量。ROS2的服务质量设置相对复杂。有8个维度：
+History（Keep last/Keep all）、Depth（only honored when history is keep_last）、Reliability（Best effort/Reliable） 、Durability（Volatile/Transient local）、Deadline（Topic Published Duration）、Lifespan（ a topic maximum duration from publisher to Subscriber）、Lease Duration(publisher alive duration)、Liveliness（Automatic/Manual）、
+
+这部分消息过于复杂，建议阅读[About-Quality-of-Service-Settings](https://docs.ros.org/en/humble/Concepts/Intermediate/About-Quality-of-Service-Settings.html)以了解更多详情。
 
 ## 四、总结
 至此，我们完成了入门教程中《Beginner： CLI Tools》这部分的内容。本文记录了我按照官方教程的学习过程。中间有一些自己的尝试和理解。
