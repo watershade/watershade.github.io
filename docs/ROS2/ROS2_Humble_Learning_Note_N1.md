@@ -1300,6 +1300,3 @@ Linux相关：
 其它：
 * [yaml菜鸟教程的链接](https://www.runoob.com/w3cnote/yaml-intro.html)
 
-
-
-<初稿写与2024.01 完成于2024.01.22>
