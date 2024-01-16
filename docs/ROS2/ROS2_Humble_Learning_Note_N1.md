@@ -1285,6 +1285,7 @@ ROS相关：
 * [rqt wiki](https://wiki.ros.org/rqt)
 * [ROS 2 launch tutorials](https://docs.ros.org/en/humble/Tutorials/Intermediate/Launch/Launch-Main.html)
 * [Launch Files Format](https://docs.ros.org/en/humble/How-To-Guides/Launch-file-different-formats.html)
+* [QoS Settings](https://docs.ros.org/en/humble/Concepts/Intermediate/About-Quality-of-Service-Settings.html)
 
 
 Jetson相关：
