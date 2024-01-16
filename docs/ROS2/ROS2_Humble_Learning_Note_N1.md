@@ -1127,21 +1127,151 @@ XML格式的启动文件在ROS1中就引入了，但是并不完全一样。具�
 这部分参考了[官方launch的设计文档](https://design.ros2.org/articles/roslaunch.html) 
 
 
-
-
 注：本部分文档除了参考官方[入门教程Launch部分](https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Launching-Multiple-Nodes/Launching-Multiple-Nodes.html)还参照了官方关于[不同格式的Launch文件的介绍](https://docs.ros.org/en/humble/How-To-Guides/Launch-file-different-formats.html)。官方还有一个更全面介绍[launch file的入门教程](https://docs.ros.org/en/humble/Tutorials/Intermediate/Launch/Launch-Main.html).
 
-## 四、深入学习
+### 3.9 Recording and playing back data/录制和回放数据
+
+录制和回放数据是ROS2的一个重要功能。通过录制和回放数据，你可以在不同的环境下复现你的ROS程序。比如，你在开发环境下运行程序，然后在测试环境下回放数据，就能在测试环境下复现问题。
+
+#### 3.9.1 Recording data/录制数据
+
+录制数据是通过`ros2 bag record`命令来实现的。
+最简单的用法如下：
+```bash
+ros2 bag record {topic_name}
+```
+这样可以记录某个topic的数据,并在当前目录下生成一个文件夹。文件夹默认名是`rosbag2_year_month_day-hour_minute_second`，包含了一个metadata.yaml文件和多个database文件。
+metadata.yaml记录了rosbag2的版本号、创建时间、记录的节点、记录的topics、记录的时间、数据类型等信息。我这里的database文件后缀是db3, db3是SQLite3的一种文件格式。
+
+如果要指定输出文件名，可以使用`-o`参数：
+```bash
+ros2 bag record -o {bag_name} {topic_name}
+```
+
+如果要记录多个topic，可以使用`-a`参数。具体用法如下：
+```bash
+ros2 bag record -o {bag_name} {topic1_name} {topic2_name} {...}
+```
+当然你也可以删除记录的数据，做法很简单直接清除生成的整个bag文件夹。
+
+#### 3.9.2 bag information/bag信息
+
+我们可以通过`ros2 bag info`命令来查看bag的信息。
+```bash
+$ ros2 bag info {bag_name}
+
+## 例如查看刚才我们创建的包信息
+$ ros2 bag info multi_topic_2
+
+Files:             multi_topic_2_0.db3
+Bag size:          269.4 KiB
+Storage id:        sqlite3
+Duration:          65.345s
+Start:             Jan 16 2024 12:44:36.268 (1705380276.268)
+End:               Jan 16 2024 12:45:41.613 (1705380341.613)
+Messages:          4112
+Topic information: Topic: /turtle1/cmd_vel | Type: geometry_msgs/msg/Twist | Count: 27 | Serialization Format: cdr
+                   Topic: /turtle1/pose | Type: turtlesim/msg/Pose | Count: 4085 | Serialization Format: cdr
+```
 
 
+#### 3.9.3 Playing back data/回放数据
 
-## 五、项目开发
+回放数据是通过`ros2 bag play`命令来实现的。具体用法如下：
+```bash
+ros2 bag play my_bag
+```
+需要说明的是，回放数据是基于当前的状态。以turtlesim为例，如果你在当前位置直接play之前的动作，可能会看到乌龟的运动范围超出了画面。你可以先reset当前的窗口：
+```bash
+ros2 service call /reset std_srvs/srv/Empty
+```
+当然这是基于你的起始点位于画布中心的假设。当然你也可调用别的服务，比如/turtle1/teleport_absolute，来重置turtlesim的位置到你的目标起点。
+比如我为了比较bag轨迹和原始轨迹的操作如下：
+```bash
+## 先获取当前位置
+$ ros2 topic echo --once /turtle1/pose
+x: 5.544444561004639
+y: 5.544444561004639
+theta: 0.0
+linear_velocity: 0.0
+angular_velocity: 0.0
+---
 
-## 六、Artemis机器人构想
+## 为了便于待会浮现图样，我将它的绝对位置更改到比方(3,3)
+$ ros2 service call /turtle1/teleport_absolute turtlesim/srv/TeleportAbsolute "{x: 3.0, y: 3.0, theta: 0.0}"
+
+## 我们顺便清除一下画布上多余的图案
+$ ros2 service call /clear std_srvs/srv/Empty
+
+## 现在开始记录数据
+$ ros2 bag record -o multi_topic /turtle1/pose /turtle1/cmd_vel
+
+## 然后操纵键盘让乌龟运动起来，在轨迹的结束按一下G让乌龟的朝向和最初一致
+## 然后结束录制，为了便于区分两条路径我们不妨先设置一下画笔
+$ ros2 service call /turtle1/set_pen turtlesim/srv/SetPen "{r: 200, g: 80, b: 0, width: 1, 'off': 0}"
+
+## 现在回放bag
+$ ros2 bag play multi_topic
+```
+下图是我白色线是原始的曲线，棕色的是bag回放的曲线。但是两条曲线并没有完全相同，似乎部分的数据遗失了。
+![bag playback](img/bag_playback_1.png)
+<p style="text-align:center; color:orange">图12：bag回放的轨迹与原始轨迹的对比图1</p>
+
+我决定重做一次上面的步骤，但是这次我会将两个起点设置的完全一致：
+```bash
+## 先重置画布
+$ ros2 service call /reset std_srvs/srv/Empty
+
+## 先将乌龟位置设置到(3,3)
+$ ros2 service call /turtle1/teleport_absolute turtlesim/srv/TeleportAbsolute "{x: 3.0, y: 3.0, theta: 0.0}"
+
+## 我们顺便清除一下画布上多余的图案
+$ ros2 service call /clear std_srvs/srv/Empty
+
+## 现在开始记录数据
+$ ros2 bag record -o multi_topic_2 /turtle1/pose /turtle1/cmd_vel
+
+## 然后操纵键盘让乌龟运动起来，在轨迹的结束按一下G让乌龟的朝向和最初一致
+## 然后结束录制。为了后面的考虑，先将画笔设置为当前画布的颜色
+$ ros2 param dump --print /turtlesim
+WARNING: '--print' is deprecated; this utility prints to stdout by default
+/turtlesim:
+  ros__parameters:
+    background_b: 255
+    background_g: 86
+    background_r: 69
+    qos_overrides:
+      /parameter_events:
+        publisher:
+          depth: 1000
+          durability: volatile
+          history: keep_last
+          reliability: reliable
+    use_sim_time: false
+
+$ ros2 service call /turtle1/set_pen turtlesim/srv/SetPen "{r: 69, g: 86, b: 255, width: 2, 'off': 0}"
+
+## 先将乌龟初始位置重新设置到(3,3)
+$ ros2 service call /turtle1/teleport_absolute turtlesim/srv/TeleportAbsolute "{x: 3.0, y: 3.0, theta: 0.0}"
+
+为了便于区分两条路径我们不妨先设置画笔为黄色
+$ ros2 service call /turtle1/set_pen turtlesim/srv/SetPen "{r: 255, g: 127, b: 0, width: 2, 'off': 0}"
+
+## 现在回放bag
+$ ros2 bag play multi_topic_2
+```
+这一次表现的非常不错：
+![bag playback gif](img/bag_playback_2.gif)
+<p style="text-align:center; color:orange">图13：bag回放的轨迹与原始轨迹的对比图2</p>
 
 
+## 四、总结
+至此，我们完成了入门教程中《Beginner： CLI Tools》这部分的内容。本文记录了我按照官方教程的学习过程。中间有一些自己的尝试和理解。
+
+希望本文能够对你学习ROS2有所帮助。
 
 
+<全文完 @2024.01.22>
 
 ## 附录
 ROS相关：
@@ -1174,4 +1304,4 @@ Linux相关：
 
 
 
-<初稿写与2024.01 未完待续>
+<初稿写与2024.01 完成于2024.01.22>
