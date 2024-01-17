@@ -156,6 +156,52 @@ source install/setup.bash
 ![rclcpp minimal demo](img/examples_rclcpp_minimal.gif)
 <p style="text-align:center; color:orange">图2：rclcpp minimal demo</p>
 
+### 2.1.10 create an package/新家包
+colcon每个包都有一个`package.xml`文件，此文件定义了作者、版本、依赖等信息。我们不妨打开一个examples_rclcpp_minimal_publisher的package.xml文件，并使用[xmltool](https://github.com/cmiles74/xmltool/)工具解析一下它的构成。
+![package_xml_parse](img/package_xml_parse.png)
+<p style="text-align:center; color:orange">图3：package.xml解析结果</p>
+
+上图很清晰的展示了xml的主要节点。我们可以看到此包的build、execute和test都依赖rclcpp和std_msgs。也可以看到编译类型是`ament_cmake`。
+
+colcon支持多种构建类型。推荐的类型是ament_cmake和ament_python。也支持纯cmake包。
+ament_cmake是C/c++的构建类型。ament_python则是python的构建类型。
+
+我们可以使用`ros2 pkg create`去创建基于模板的新包。现在来尝试一下：
+```bash
+$ cd src/examples/rclcpp
+
+$ ros2 pkg create --build-type ament_cmake --dependencies rclcpp std_msgs --description "It is an demo package"  --license MIT  demo_pkg
+going to create a new package
+package name: demo_pkg
+destination directory: /home/galileo/Workspaces/ROS2/execises/demo_ws/src/examples/rclcpp
+package format: 3
+version: 0.0.0
+description: It is an demo package
+maintainer: ['galileo <zjh.2008.09@gmail.com>']
+licenses: ['MIT']
+build type: ament_cmake
+dependencies: ['rclcpp', 'std_msgs']
+creating folder ./demo_pkg
+creating ./demo_pkg/package.xml
+creating source and include folder
+creating folder ./demo_pkg/src
+creating folder ./demo_pkg/include/demo_pkg
+creating ./demo_pkg/CMakeLists.txt
+
+$ tree demo_pkg/
+demo_pkg/
+├── CMakeLists.txt
+├── include
+│   └── demo_pkg
+├── LICENSE
+├── package.xml
+└── src
+
+3 directories, 3 files
+
+```
+这样我们就新建了一个包，只是里面暂时没有代码。关于`ros2 pkg create`的详细用法，你可以使用`ros2 pkg create -h`去仔细查看。请尽量选择设置一个license,否则里面可能会产生警告提示。
+
 
 ## 2.2 
 
@@ -175,7 +221,10 @@ ROS相关：
 * [A universal build tool](https://design.ros2.org/articles/build_tool.html)
 * [古月居机器人教程](https://book.guyuehome.com/)
 * [古月机器人入门21讲](https://class.guyuehome.com/p/t_pc/course_pc_detail/column/p_628f4288e4b01c509ab5bc7a)
-
+* [open-rmf](https://osrf.github.io/ros2multirobotbook/)
+* [open-rmf docs](https://osrf.github.io/ros2multirobotbook/)
+* [ROS2 for RUST](https://github.com/ros2-rust/ros2_rust)
+* [REP 149](https://www.ros.org/reps/rep-0149.html)
 
 Jetson相关：
 
