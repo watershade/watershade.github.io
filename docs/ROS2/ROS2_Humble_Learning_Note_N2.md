@@ -134,6 +134,8 @@ $ tree -L 1
 ```
 这个目录结构在前面已经简单介绍过了。我们可以深入的浏览一下每个目录的文件，以加深印象。
 
+另外，如果您不想构建特定的软件包，将一个名为`COLCON_IGNORE`的空文件放在目录中，则不会索引。你还可以在build,install,log的目录中发现这个文件。我推测这个文件相当于一个标签，编译器会忽略索引这个文件所在的目录。
+
 ### 2.1.7 test/测试
 colcon的功能十分强大，因此命令也就异常复杂。慢慢了解吧。我们先来看看如果使用colcon来测试。
 ```bash
@@ -143,6 +145,15 @@ colcon test
 中间还可能有一些警告，比如下图：
 ![colcon test demo](img/colcon_test_result_demo1.png)
 <p style="text-align:center; color:orange">图1：colcon test结果示例图</p>
+
+如果要避免在CMAKE软件包中配置和建造测试，则可以通过：-CMAKE -ARGS -DBUILD_TESTING = 0。
+
+如果你想运行特定的测试，可以使用如下命令：
+```bash
+colcon test --packages-select <package_name> --ctest-args -R <YOUR_TEST_IN_PKG>
+```
+
+
 
 ### 2.1.8 setup/设置
 在进一步测试之前，需要source一下生成的setup脚本，才能为新生成的package执行包创建包含必须依赖的工作空间。做法和之前创建underlay的工作空间一样。因为ubuntu的terminal是bash,以后就不强调这一点。如果你的是其它的terminal,你还可以选择使用ps1,sh,zsh等。
@@ -156,7 +167,7 @@ source install/setup.bash
 ![rclcpp minimal demo](img/examples_rclcpp_minimal.gif)
 <p style="text-align:center; color:orange">图2：rclcpp minimal demo</p>
 
-### 2.1.10 create an package/新家包
+### 2.1.10 create an package/新包
 colcon每个包都有一个`package.xml`文件，此文件定义了作者、版本、依赖等信息。我们不妨打开一个examples_rclcpp_minimal_publisher的package.xml文件，并使用[xmltool](https://github.com/cmiles74/xmltool/)工具解析一下它的构成。
 ![package_xml_parse](img/package_xml_parse.png)
 <p style="text-align:center; color:orange">图3：package.xml解析结果</p>
@@ -201,6 +212,42 @@ demo_pkg/
 
 ```
 这样我们就新建了一个包，只是里面暂时没有代码。关于`ros2 pkg create`的详细用法，你可以使用`ros2 pkg create -h`去仔细查看。请尽量选择设置一个license,否则里面可能会产生警告提示。
+
+### 2.1.11 colcon_cd
+ROS2还提供一个快速跳转的工具，但是默认是没有生效的。所以需要提前设置一下：
+```bash
+echo "source /usr/share/colcon_cd/function/colcon_cd.sh" >> ~/.bashrc
+echo "export _colcon_cd_root=/opt/ros/humble/" >> ~/.bashrc
+
+## 如果有必要可以查看一下添加是否成功
+cat ~/.bashrc | grep colcon_cd
+
+```
+为了让新添加的生效，我们可以重新打开一下shell.我们可以检验一下是否成功。
+```bash
+$ colcon_cd rclcpp
+$ pwd
+/opt/ros/humble/share/rclcpp
+$ colcon_cd std_msgs
+$ pwd
+/opt/ros/humble/share/std_msgs
+$ colcon_cd examples_rclcpp_minimal_publisher
+$ pwd
+/opt/ros/humble/share/examples_rclcpp_minimal_publisher
+```
+可以看出这个工具确实挺方便的，但是前提是你需要知道包的正确名称。另外如果没有source过的包，这个工具也无法跳转。比如，我们尝试寻找刚才的`demo_pkg`：
+```bash
+$ colcon_cd demo_pkg
+Could neither find package 'demo_pkg' from '/opt/ros/humble/' nor from the current working directory
+```
+### 2.1.12 colcon命令自动补全
+colcon支持命令自动补全，但是默认是没有开启的。如果需要开启，需要在bashrc中添加一行：
+```bash
+echo "source /usr/share/colcon_argcomplete/hook/colcon-argcomplete.bash" >> ~/.bashrc
+## 如果有必要可以查看一下添加是否成功
+cat ~/.bashrc | grep argcomplete
+```
+然后重新打开shell，就可以使用命令自动补全了。
 
 
 ## 2.2 
