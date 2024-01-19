@@ -1,15 +1,3 @@
-<head>
-    <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML" type="text/javascript"></script>
-    <script type="text/x-mathjax-config">
-        MathJax.Hub.Config({
-            tex2jax: {
-            skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
-            inlineMath: [['$','$']]
-            }
-        });
-    </script>
-</head>
-
 ---
 title: CAN-FD的位定时的思考
 permalink: /CAN_FD/Bit_Timing/
@@ -265,3 +253,18 @@ CAN选择了两种同步方式：硬同步（HARD SYNCHRONIZATION）和再同步
 3. 文章还参考了ISO11898-1/2015.
 4. 文章还参考了ST的AN5348.
 5. 瑞萨电子的RCJ05B0027-0100/Rev.1.00。
+
+
+
+
+<!-- <head>
+    <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML" type="text/javascript"></script>
+    <script type="text/x-mathjax-config">
+        MathJax.Hub.Config({
+            tex2jax: {
+            skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+            inlineMath: [['$','$']]
+            }
+        });
+    </script>
+</head> -->

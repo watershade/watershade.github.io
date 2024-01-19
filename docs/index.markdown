@@ -34,7 +34,7 @@ title: Catalog
 * [STM32U5的UART单线通讯上拉电阻问题](/STM32/UART_Signle_Wire/)
 
 ## CAN FD Knownledge
-* [CAN FD位定时的思考](./CAN_FD/Bit_Timing/STM32的CAN%20FD位定时)
+* [CAN FD位定时的思考](./CAN_FD/Bit_Timing/)
 
 ## ODYSSEY-STM32MP135D
 * [ODYSSEY-STM32MP135D主页](./ODYSSEY-STM32MP135D/index)
