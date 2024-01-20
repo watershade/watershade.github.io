@@ -461,6 +461,618 @@ ros2 run turtlesim turtlesim_node
 
 所以我们可以认为Overlay层是先被寻找的。类似与C语言的局部变量。当在Overlay里面找不到我们需要的package的时候才会去修找underlay层的包。如果启用了我们修改过的Overlay,因为turtlesim已经在这里寻找到了。所以就会出现我们做出修改的窗口。
 
+### 2.3 ROS2 Package和它的创建
+奇怪的是，我其实在笔记1中也没有自己提过Package是什么。官方其实也没有将。我们其实之前用`ROS2 pack`这个命令对包进行过一番操作。因为software package默认是一个大家都熟知的概念。但是其实我自己并不能给它一个很好的解释。我们不妨来看看官方怎么解释的吧：
+```txt
+A package is an organizational unit for your ROS 2 code. If you want to be able to install your code or share it with others, then you’ll need it organized in a package. With packages, you can release your ROS 2 work and allow others to build and use it easily.
+
+（对于ROS2来说）一个软件包（Package，简称软件包）是ROS2的代码管理单元。如果你想要安装你的的代码，或者将它们分享给其他人，你需要将它们组织成一个包的形式。通过包，您可以发布您的ROS2作品并允许其他人轻松构建和使用它。
+```
+这个概念其实很清晰。首先它是软件代码的组织形式，通过软件包这种形式会将代码中的所有文件见按照某种形式组织/捆绑在一起。第二，你发布给别人的时候，也是将你的代码当作一个整体（package）发布出去。别人获取时也是b把这个包的整体获取过来。否则软件将事实不完整的。
+
+ROS2中的包创建使用ament作为其构建系统，并使用colcon作为其构建工具。您可以使用官方支持的CMake或Python创建包，但也存在其他构建类型。
+
+#### 2.3.1 ament
+(注：这部分主要参考[about build system](https://docs.ros.org/en/foxy/Concepts/About-Build-System.html)这一篇的内容。)
+
+ament是ROS2的构建系统。它是ROS2的核心组件之一。ament的主要目的是帮助ROS2项目开发者快速、可靠的构建ROS2软件。我们不妨看一下[官方是如何解释ament]()的:
+```txt
+Under everything is the build system. Iterating on catkin from ROS 1, we have created a set of packages under the moniker ament. Some of the reasons for changing the name to ament are that we wanted it to not collide with catkin (in case we want to mix them at some point) and to prevent confusion with existing catkin documentation. ament’s primary responsibility is to make it easier to develop and maintain ROS 2 core packages. However, this responsibility extends to any user who is willing to make use of our build system conventions and tools. Additionally it should make packages conventional, such that developers should be able to pick up any ament based package and make some assumptions about how it works, how to introspect it, and how to build or use it.
+
+一切之下都是构建系统。 在 ROS 1 的 catkin 上进行迭代，我们创建了一组名为 ament 的包。 将名称更改为 ament 的一些原因是我们希望它不与 catkin 冲突（以防我们想在某个时候将它们混合）并防止与现有的 catkin 文档混淆。 ament 的主要职责是让 ROS 2 核心包的开发和维护变得更加容易。 然而，这一责任延伸到任何愿意使用我们的构建系统约定和工具的用户。 此外，它应该使包变得常规，这样开发人员应该能够选择任何基于 ament 的包，并对其如何工作、如何内省以及如何构建或使用它做出一些假设。
+
+```
+
+ament是一个不断发展的构建系统，目前主要由ament_package，ament_cmake, ament_lint和build tools组成。它们被托管在[ament的github仓库](https://github.com/ament)中。关于这几个仓库具体包含什么内容这里就不再赘述。下面只描述与之相关的一些概念。
+
+* ament packages :任何包含package.xml并遵循ament打包准则的包，无论底层构建系统如何。package.xml“清单”文件包含处理和操作包所需的信息。此包信息包括全局唯一的包名称以及包的依赖项等内容。package.xml文件还充当标记文件，指示包在文件系统上的位置。package.xml文件的解析由`catkin_pkg`提供（如 ROS 1 中所示），而通过在文件系统中搜索这些package.xml文件来定位包的功能由构建工具（例如 colcon）提供。
+
+* ament cmake pacakge :使用CMake构建的ament包,它遵循ament的打包准则。这种类型的包由 package.xml 文件的`<export>`标记中的 `<build_type>ament_cmake</build_type>` 标记标识。
+
+* ament Python package :遵循ament打包指南的Python包。
+
+* setuptools : 它是python常用的一个打包和分发工具。它也是ament中python package的打包工具。
+
+* package.xml :包的清单文件（manifest file）。标记包的根并包含有关包的元信息，包括其名称、版本、描述、维护者、许可证、依赖项等。 清单的内容采用机器可读的XML格式，并且内容在REP 127和140中描述，并且有可能在未来的REP中进一步修改。
+
+#### 2.3.2 Package的结构
+我们首先来了解一下ament包的组成。对于cmake的包它包含这样几个关键文件/文件夹：
+* __CMakeLists.txt__ 描述如何在包中构建代码
+* __include/<package_name>__ 包含包的公共标头的目录
+* __package.xml__ 文件包含了包的元信息
+* __src__ 目录包含包的源代码
+
+其实最简单的是我们去查看一下我们之前2.1中的包的结构：
+```bash
+$ tree -L 3 wait_set/
+wait_set/
+├── CHANGELOG.rst
+├── CMakeLists.txt
+├── include
+│   └── wait_set
+│       ├── listener.hpp
+│       ├── random_listener.hpp
+│       ├── random_talker.hpp
+│       ├── talker.hpp
+│       └── visibility.h
+├── package.xml
+├── README.md
+└── src
+    ├── executor_random_order.cpp
+    ├── listener.cpp
+    ├── static_wait_set.cpp
+    ├── talker.cpp
+    ├── thread_safe_wait_set.cpp
+    ├── wait_set_composed.cpp
+    ├── wait_set.cpp
+    ├── wait_set_random_order.cpp
+    ├── wait_set_topics_and_timer.cpp
+    └── wait_set_topics_with_different_rates.cpp
+
+3 directories, 19 files
+```
+可以看出这个package包含了上面提到的四个部分。当然还有一些其它几个ament包不需要的文件：`CHANGELOG.rst`和`README.md`等。
+
+
+我们再来看看python的包组成：
+* __package.xml__ 文件包含有关包的元信息
+* __resource/<package_name>__ 是包的标记文件
+* __setup.cfg__ 当包有可执行文件时需要setup.cfg，因此ros2 run可以找到它们
+* __setup.py__ 包含如何安装包的说明
+* __<package_name>__ 与您的包同名的目录，ROS2工具使用它来查找您的包，包含`__init__.py`
+
+其实最简单的是我们去查看一下我们之前2.1中的包的结构：
+```bash
+$ tree -L 3 minimal_publisher/
+minimal_publisher/
+├── CHANGELOG.rst
+├── examples_rclpy_minimal_publisher
+│   ├── __init__.py
+│   ├── publisher_local_function.py
+│   ├── publisher_member_function.py
+│   ├── publisher_old_school.py
+│   └── __pycache__
+│       └── __init__.cpython-310.pyc
+├── package.xml
+├── README.md
+├── resource
+│   └── examples_rclpy_minimal_publisher
+├── setup.cfg
+├── setup.py
+└── test
+    ├── __pycache__
+    │   ├── test_copyright.cpython-310-pytest-6.2.5.pyc
+    │   ├── test_flake8.cpython-310-pytest-6.2.5.pyc
+    │   └── test_pep257.cpython-310-pytest-6.2.5.pyc
+    ├── test_copyright.py
+    ├── test_flake8.py
+    └── test_pep257.py
+
+5 directories, 17 files
+```
+可以看出这个package包含了上面提到的五个部分。当然还有一些其它几个ament包不需要的文件：`CHANGELOG.rst`和`README.md`等。
+
+比较Cmake和Python的ament包相似之处是都包含了package.xml文件。在Cmake中的include文件夹了里面包含了一个和包名相同的子文件，而Python的resource中也有一个和包名相同的标记文件。两个package.xml文件的build_type标签也不相同。分标包含了`ament_cmake`标签和`ament_python`标签。
+
+然而比较让我觉得不理解的是下面这种结构。一个是rclcpp/topics/minimal_publisher/,它的结构如下：
+```
+$ tree minimal_publisher/
+minimal_publisher/
+├── CHANGELOG.rst
+├── CMakeLists.txt
+├── lambda.cpp
+├── member_function.cpp
+├── member_function_with_type_adapter.cpp
+├── member_function_with_unique_network_flow_endpoints.cpp
+├── member_function_with_wait_for_all_acked.cpp
+├── not_composable.cpp
+├── package.xml
+└── README.md
+
+0 directories, 10 files
+```
+可以看到这个包根本没有include文件夹。和cmake ament的要求的包结构不一样。但应该也是合理的。后面再继续关注这个情况。
+
+另外需要注意的是一个workspace可以包含一个或者多个package,这些package可以是python package或者cmake package.甚至其它受支持的构建系统。比如cargo ament（编译rust包）。但是需要注意它们不能相互嵌套。（一个包里面包含另一个包的情况是不允许的。它们应该都有独立的包结构。）下面是入门教程示例的一个简单的文件结构：
+```txt
+workspace_folder/
+    src/
+      cpp_package_1/
+          CMakeLists.txt
+          include/cpp_package_1/
+          package.xml
+          src/
+
+      py_package_1/
+          package.xml
+          resource/py_package_1
+          setup.cfg
+          setup.py
+          py_package_1/
+      ...
+      cpp_package_n/
+          CMakeLists.txt
+          include/cpp_package_n/
+          package.xml
+          src/
+```
+我们在2.1和2.2小节使用的目录结构都符合这种推荐的方式。
+
+#### 2.3.3 尝试自己创建一个Package
+（这一部分的操作我们在2.1.10中其实已经简单尝试过。这里再操作一次是为了更加熟练和深入。）
+我们现在先回到我们在2.2小节使用的那个工作区。（就是运行turtlesim的那个工作区）
+这一小节，将使用`ros2 pack create`来创建package.以下的操作假定你已经跳转到了demo2_ws工作区。现在让我们开始吧：
+```bash
+$ ros2 pkg create -h
+usage: ros2 pkg create [-h] [--package-format {2,3}] [--description DESCRIPTION] [--license LICENSE]
+                       [--destination-directory DESTINATION_DIRECTORY] [--build-type {cmake,ament_cmake,ament_python}]
+                       [--dependencies DEPENDENCIES [DEPENDENCIES ...]] [--maintainer-email MAINTAINER_EMAIL]
+                       [--maintainer-name MAINTAINER_NAME] [--node-name NODE_NAME] [--library-name LIBRARY_NAME]
+                       package_name
+
+Create a new ROS 2 package
+
+positional arguments:
+  package_name          The package name
+
+options:
+  -h, --help            show this help message and exit
+  --package-format {2,3}, --package_format {2,3}
+                        The package.xml format.
+  --description DESCRIPTION
+                        The description given in the package.xml
+  --license LICENSE     The license attached to this package; this can be an arbitrary string, but a LICENSE file will only be generated
+                        if it is one of the supported licenses (pass '?' to get a list)
+  --destination-directory DESTINATION_DIRECTORY
+                        Directory where to create the package directory
+  --build-type {cmake,ament_cmake,ament_python}
+                        The build type to process the package with
+  --dependencies DEPENDENCIES [DEPENDENCIES ...]
+                        list of dependencies
+  --maintainer-email MAINTAINER_EMAIL
+                        email address of the maintainer of this package
+  --maintainer-name MAINTAINER_NAME
+                        name of the maintainer of this package
+  --node-name NODE_NAME
+                        name of the empty executable
+  --library-name LIBRARY_NAME
+                        name of the empty library
+
+```
+我们先来看一下创建一个包需要的几个主要参数。
+* `package_name`是必须参数。想必大家都能理解。
+* `--license`是这个包支持的LICENSE，我们来查看一下：
+  ```bash
+  $ ros2 pkg create --license ? my_test
+  Supported licenses:
+  Apache-2.0
+  BSL-1.0
+  BSD-2.0
+  BSD-2-Clause
+  BSD-3-Clause
+  GPL-3.0-only
+  LGPL-3.0-only
+  MIT
+  MIT-0
+  ```
+  可以看出来它支持`Apache-2.0`, `BSL-1.0`, `BSD-2.0`, `BSD-2-Clause`, `BSD-3-Clause`, `GPL-3.0-only`, `LGPL-3.0-only`, `MIT`, `MIT-0`这几种LICENSE。看一查看[这里](https://opensource.org/licenses/)了解更多license.
+* `--package-format {2,3}`是这个包的package.xml格式，我们可以选择`2`或`3`。具体可以查看[REP-0149](https://ros.org/reps/rep-0149.html).
+* `--build-type`是这个包的构建类型，我们可以选择`cmake`,`ament_cmake`或`ament_python`来构建。
+* `--dependencies`是这个包的依赖关系，可以指定多个依赖。如果是多个依赖项，依次写在后面就行。后面也可以手动修改。
+* `--maintainer-email`和`--maintainer-name`是这个包的维护者信息。
+* `--node-name`和`--library-name`是这个包的可执行节点和库名称。
+* `--destination-directory`是这个包的生成目录，默认是当前目录。
+* `--description`是这个包的描述信息。
+
+通过上面对于它的介绍，我们应该可以创建出一个新的包。我们来试试吧：
+```bash
+## 入门教程提供的脚本，用来创建一个名字叫做my_package，节点名字叫做my_node的包。
+$ ros2 pkg create --build-type ament_cmake --license Apache-2.0 --node-name my_node my_package
+$ tree my_package/
+my_package/
+├── CMakeLists.txt
+├── include
+│   └── my_package
+├── LICENSE
+├── package.xml
+└── src
+    └── my_node.cpp
+
+3 directories, 4 files
+```
+上面的文件结构和我们在上一小节的描述一致。我们现在再打开package.xml看一下：
+```xml
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>my_package</name>
+  <version>0.0.0</version>
+  <description>TODO: Package description</description>
+  <maintainer email="zjh.2008.09@gmail.com">galileo</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
+```
+可以看到默认的package-format是3.0； 版本号默认是0.0.0； 因为我们没有制定依赖项所以也看不到相关信息（只有测试依赖项）；默认的描述信息现实的是`TODO: Package description`。maintainer信息尽管我没有专门制定，但是也会默认使用我自己的名字。license是我们指定的Apache-2.0。`build_type`是ament_cmake。
+
+现在我们依照上面的办法办法来创建一个支持ament python的package.
+```bash
+$ ros2 pkg create --build-type ament_python --license Apache-2.0 --node-name my_2nd_node my_2nd_package
+$ tree my_2nd_package/
+my_2nd_package/
+├── LICENSE
+├── my_2nd_package
+│   ├── __init__.py
+│   └── my_2nd_node.py
+├── package.xml
+├── resource
+│   └── my_2nd_package
+├── setup.cfg
+├── setup.py
+└── test
+    ├── test_copyright.py
+    ├── test_flake8.py
+    └── test_pep257.py
+
+3 directories, 10 files
+```
+这样我就创建了一个支持名称叫做my_2nd_package的ament python的包。目录结构和之前提到的一致。我们打开package.xml看一下：
+```xml
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>my_2nd_package</name>
+  <version>0.0.0</version>
+  <description>TODO: Package description</description>
+  <maintainer email="zjh.2008.09@gmail.com">galileo</maintainer>
+  <license>Apache-2.0</license>
+
+  <test_depend>ament_copyright</test_depend>
+  <test_depend>ament_flake8</test_depend>
+  <test_depend>ament_pep257</test_depend>
+  <test_depend>python3-pytest</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>
+```
+可以看到默认的package-format是3.0； 版本号默认是0.0.0； 因为我们没有指定依赖项所以也看不到相关信息（只有测试依赖项）；默认的描述信息现实的是`TODO: Package description`。maintainer信息尽管我没有专门制定，但是也会默认使用我自己的名字。license是我们指定的Apache-2.0。`build_type`是ament_python。
+
+python包中还专门提到了__init__.py这个文件，我们不妨也看一下它的内容。结果一查看，里面默认的内容为空。
+
+现在我们来构建刚才创建的两个包。这一次我们根据入门教程的建议，先使用build直接构建。然后修改一部分内容，单独构建某一个包。
+```bash
+## 构建整个工作区
+$ cd ../
+$ colcon build
+[0.792s] WARNING:colcon.colcon_core.package_selection:Some selected packages are already built in one or more underlay workspaces:
+	'turtlesim' is in: /home/galileo/Workspaces/ROS2/execises/demo2_ws/install/turtlesim, /opt/ros/humble
+If a package in a merged underlay workspace is overridden and it installs headers, then all packages in the overlay must sort their include directories by workspace order. Failure to do so may result in build failures or undefined behavior at run time.
+If the overridden package is used by another package in any underlay, then the overriding package in the overlay must be API and ABI compatible or undefined behavior at run time may occur.
+
+If you understand the risks and want to override a package anyways, add the following to the command line:
+	--allow-overriding turtlesim
+
+This may be promoted to an error in a future release of colcon-override-check.
+Starting >>> my_2nd_package
+Starting >>> my_package
+Starting >>> turtlesim
+--- stderr: my_2nd_package                                                                                      
+/home/galileo/.local/lib/python3.10/site-packages/setuptools/_distutils/cmd.py:66: SetuptoolsDeprecationWarning: setup.py install is deprecated.
+!!
+
+        ********************************************************************************
+        Please avoid running ``setup.py`` directly.
+        Instead, use pypa/build, pypa/installer or other
+        standards-based tools.
+
+        See https://blog.ganssle.io/articles/2021/10/setup-py-deprecated.html for details.
+        ********************************************************************************
+
+!!
+  self.initialize_options()
+---
+Finished <<< my_2nd_package [0.94s]
+Finished <<< my_package [1.15s]                                                           
+Finished <<< turtlesim [8.34s]                     
+
+Summary: 3 packages finished [9.05s]
+  1 package had stderr output: my_2nd_package
+```
+我们不妨来分别运行两个包，看一下结果。
+```bash
+$ source install/local_setup.bash
+$ ros2 pkg list| grep my
+dummy_map_server
+dummy_robot_bringup
+dummy_sensors
+my_2nd_package
+my_package
+## 运行my_package
+$ ros2 run my_package my_node
+hello world my_package package
+## 运行my_2nd_package
+$ ros2 run my_2nd_package my_2nd_node
+Hi from my_2nd_package.
+```
+现在我们修改一下的my_package输出内容。我们在my_node.cpp原来printf函数下面添加一行`printf("Hallo! Wie geht's?\n");`。然后重新编译：
+```bash
+## 构建单个包
+$ colcon build --packages-select my_package
+Starting >>> my_package
+Finished <<< my_package [0.49s]                     
+
+Summary: 1 package finished [1.11s]
+$ ros2 run my_package my_node
+hello world my_package package
+Hallo! Wie geht's?
+```
+这样我们就完成了编译。（因为我们已经source过一次overlay,这一次其实修改没有涉及到依赖项的添加，所以没有再重新source.）
+
+现在我们再修改一下my_2nd_package的输出内容。我们在my_2nd_node.py原来print函数下面添加一行`print(‘Wie ist das wetter?’)`。因为是python,请注意换行的格式。然后重新编译和测试：
+```bash
+## 构建单个包
+$ colcon build --packages-select my_2nd_package 
+Starting >>> my_2nd_package
+--- stderr: my_2nd_package                   
+/home/galileo/.local/lib/python3.10/site-packages/setuptools/_distutils/cmd.py:66: SetuptoolsDeprecationWarning: setup.py install is deprecated.
+!!
+
+        ********************************************************************************
+        Please avoid running ``setup.py`` directly.
+        Instead, use pypa/build, pypa/installer or other
+        standards-based tools.
+
+        See https://blog.ganssle.io/articles/2021/10/setup-py-deprecated.html for details.
+        ********************************************************************************
+
+!!
+  self.initialize_options()
+---
+Finished <<< my_2nd_package [0.80s]
+
+Summary: 1 package finished [1.43s]
+  1 package had stderr output: my_2nd_package
+
+$ ros2 run my_2nd_package my_2nd_node
+Hi from my_2nd_package.
+Wie ist das wetter?
+```
+
+#### 2.3.4 修改package.xml
+刚才提到过package.xml文件可以被修改，我们现在讲描述信息修改掉吧。
+
+唯一需要说明的是，ament_python的setup.py中也包含package.xml文件的信息，所以我们需要两处同步修改。
+
+现在你可以使用`$ ros2 pkg xml {package_name}`去查看这个包的package.xml内容了。
+
+### 2.4 尝试编写ament_cmake包
+本小节参照入门教程[Writing a simple publisher and subscriber (C++)](https://docs.ros.org/en/humble/Tutorials/Beginner-Client-Libraries/Writing-A-Simple-Cpp-Publisher-And-Subscriber.html)的内容。
+
+这一小节，包的创建和编译还是参照2.2和2.3小节的内容进行。主要是通过编程来深化node（节点）和topic（话题）的概念。其实程序功能比较简单，一个节点发布内容到一个Topic上，另一个订阅内容这个Topic。
+
+这一次我们新建一个工作区，名字叫做demo3_ws. 然后创建一个名字叫做cpp_pubsub的package。
+```bash
+$ mkdir -p demo3_ws/src
+$ cd demo3_ws/src
+$ ros2 pkg create --build-type ament_cmake --license Apache-2.0 --destination-directory ./src --description "A simple publisher and subscriber node in C++" cpp_pubsub
+$ ls src/cpp_pubsub/
+CMakeLists.txt  include  LICENSE  package.xml  src
+```
+至此，我们已经创建了一个名字叫做cpp_pubsub的包。我们这次将从[这里](https://raw.githubusercontent.com/ros2/examples/humble/rclcpp/topics/minimal_publisher/member_function.cpp)下载一个源文件放到src目录下。可以使用wget或者直接从浏览器现在，然后手动放入也可以。我选择前者：
+```bash
+$ wget -O src/cpp_pubsub/src/publisher_member_function.cpp https://raw.githubusercontent.com/ros2/examples/humble/rclcpp/topics/minimal_publisher/member_function.cpp
+## 省略回应内容 ...
+## 下载完成之后，检查一下
+$ ls src/cpp_pubsub/src/
+publisher_member_function.cpp
+## 然后使用你最喜欢的工具查看和修改文档，我使用vscode
+$ code src/cpp_pubsub/
+```
+#### 2.4.1 学习这段示例代码
+开头有几个c++11引入的头文件：
+```c++
+/*This header is part of the date and time library.*/
+#include <chrono>
+/*This header is part of the function objects library and provides the standard hash function.*/
+#include <functional>
+/*This header is part of the dynamic memory management library.*/
+#include <memory>
+#include <string>
+```
+关于chrono的描述可以看这里[chrono](https://en.cppreference.com/w/cpp/header/chrono);关于functional的描述可以看这里[functional](https://en.cppreference.com/w/cpp/header/functional);关于memory的描述可以看这里[memory](https://en.cppreference.com/w/cpp/header/memory)。
+
+
+接下来有几个与ros相关的library中的头文件：
+```c++
+/*`rclcpp` provides the canonical C++ API for interacting with ROS.*/
+/*It consists of these main components：Node，Publisher，Subscriber，Servic Client，Servic Server，Timer，Parameter，Rate， Executors， CallbackGroups ... and many more*/
+#include "rclcpp/rclcpp.hpp"
+
+#include "std_msgs/msg/string.hpp"
+```
+如果有必要，可以手动打开查看。请记住这一步我们使用了rclcpp和std_msgs这两个ROS的包。所以后面需要在依赖项中有所体现。
+
+再来看一下主函数：
+```c++
+int main(int argc, char * argv[])
+{
+  rclcpp::init(argc, argv);
+  rclcpp::spin(std::make_shared<MinimalPublisher>());
+  rclcpp::shutdown();
+  return 0;
+}
+```
+可以大体理解先初始化，然后循环执行MinimalPublisher这个类的构建函数，最后关闭。所以再来看一下MinimalPublisher这个类。
+
+```c++
+class MinimalPublisher : public rclcpp::Node
+{
+public:
+  MinimalPublisher()
+  : Node("minimal_publisher"), count_(0)
+  {
+    publisher_ = this->create_publisher<std_msgs::msg::String>("topic", 10);
+    timer_ = this->create_wall_timer(
+      500ms, std::bind(&MinimalPublisher::timer_callback, this));
+  }
+
+private:
+  void timer_callback()
+  {
+    auto message = std_msgs::msg::String();
+    message.data = "Hello, world! " + std::to_string(count_++);
+    RCLCPP_INFO(this->get_logger(), "Publishing: '%s'", message.data.c_str());
+    publisher_->publish(message);
+  }
+  rclcpp::TimerBase::SharedPtr timer_;
+  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr publisher_;
+  size_t count_;
+};
+```
+这个函数就比较复杂了。看起来我们还是需要先来理解一些基本知识。
+
+#### 2.4.2 rclcpp和std_msgs学习
+
+* static_assert: 
+* std::bind:
+* RCLCPP_INFO: 
+* rclcpp::init:
+* rclcpp::spin
+* rclcpp::shutdown
+* rclcpp::Node
+* rclcpp::create_publisher
+* rclcpp::create_wall_timer
+
+这部分函数的功能比较简单，但是用到的函数还是比较复杂的。
+
+### 2.4.3 配置依赖项
+前面提到了我们用到了rclcpp和std_msgs这两个包，所以我们需要在package.xml中添加依赖项。添加内容：
+```txt
+<depend>rclcpp</depend>
+<depend>std_msgs</depend>
+```
+CMakelists.txt文件内容也要修改，在适当位置添加：
+```txt
+find_package(rclcpp REQUIRED)
+find_package(std_msgs REQUIRED)
+```
+此外还需要添加一个默认的C++版本：
+```bash
+# Default to C++14
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 14)
+endif()
+```
+做完这些内容，我们构建一下：
+```bash
+## 检查一下依赖
+$ rosdep check --from-paths src --ignore-src --rosdistro humble -y
+All system dependencies have been satisfied
+
+## 我们也可以用另一条指令
+$ rosdep install -i --from-paths src --ignore-src --rosdistro humble -y
+#All required rosdeps installed successfully
+$ colcon build
+Starting >>> cpp_pubsub
+Finished <<< cpp_pubsub [3.95s]                     
+
+Summary: 1 package finished [4.55s]
+```
+### 2.4.3 在这个package中间添加一个subscriber节点
+照例从[这里](https://raw.githubusercontent.com/ros2/examples/humble/rclcpp/topics/minimal_subscriber/member_function.cpp)下载文件。
+```bash
+$ wget -O src/cpp_pubsub/src/subscriber_member_function.cpp https://raw.githubusercontent.com/ros2/examples/humble/rclcpp/topics/minimal_subscriber/member_function.cpp
+$ ls src/cpp_pubsub/src/
+publisher_member_function.cpp  subscriber_member_function.cpp
+```
+同样的办法我们查看一下代码。具体这里就不再描述。因为这个源文件同样使用rclcpp和std_msgs这两个包。所以不必要再修改package.xml。但是需要向CMakeLists.txt中添加一个新的target。
+新增：
+```txt
+add_executable(listener src/subscriber_member_function.cpp)
+ament_target_dependencies(listener rclcpp std_msgs)
+```
+修改：
+```txt
+install(TARGETS
+  talker 
+  listener
+  DESTINATION lib/${PROJECT_NAME})
+```
+OK,现在我们再来构建一次：
+```bash
+做完这些内容，我们构建一下：
+```bash
+## 检查一下依赖
+$ rosdep check --from-paths src --ignore-src --rosdistro humble -y
+All system dependencies have been satisfied
+
+## 我们也可以用另一条指令
+$ rosdep install -i --from-paths src --ignore-src --rosdistro humble -y
+#All required rosdeps installed successfully
+$ colcon build
+Starting >>> cpp_pubsub
+Finished <<< cpp_pubsub [4.87s]                     
+
+Summary: 1 package finished [5.53s]
+```
+这一次可以不用检查依赖项。不过多做一步问题不大。
+
+现在再来source一下overlay,然后测试：
+```bash
+$ source install/setup.bash
+$ ros2 pkg list | grep cpp_pubsub
+cpp_pubsub
+## 检查一下可执行程序
+$ ros2 pkg executables cpp_pubsub
+cpp_pubsub listener
+cpp_pubsub talker
+## 运行listener
+$ ros2 run cpp_pubsub listener
+``````
+同样的方法在另一个终端运行talker：
+```bash
+$ source install/setup.bash
+$ ros2 run cpp_pubsub talker
+```
+可以看到listener订阅到了talker发布的消息。
+
+![cpp_pubsub测试图](img//simple_cpp_pubsub_test.gif)
+<p style="text-align:center; color:orange">图6：cpp_pubsub的测试图</p>
+
+### 2.4.4 总结
+这一章节使用了入门教程提供的示例代码来测试两个node之间通过topic进行通讯。代码尽管不复杂，但是有很多地方需要详细了解才行。另外代码使用了modern c++。看起来后面还要更新自己的modern c++知识。
+
+
 ## 三、项目开发
 ## 四、项目开发
 ## 五、项目开发
@@ -482,8 +1094,17 @@ ROS相关：
 * [REP 149](https://www.ros.org/reps/rep-0149.html)
 * [ROS Tutorials](http://wiki.ros.org/ros_tutorials)
 Jetson相关：
+* [ament](https://docs.ros.org/en/foxy/Concepts/About-Build-System.html)
 
 
 Linux相关：
 * [Tmux使用教程](https://www.ruanyifeng.com/blog/2019/10/tmux.html)
 
+C++和ROS2语法相关：
+* [ROS_PUBLIC](https://floodshao.github.io/2020/03/06/ros2-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90%E4%B8%8E%E5%AE%9E%E8%B7%B5-Node/)
+* [chrono](https://en.cppreference.com/w/cpp/header/chrono)
+* [functional](https://en.cppreference.com/w/cpp/header/functional)
+* [memory](https://en.cppreference.com/w/cpp/header/memory)
+* [rclcpp](https://docs.ros2.org/latest/api/rclcpp/)
+* [rclcpp Repository](https://github.com/ros2/rclcpp)
+* [std_msgs Repository](https://github.com/ros2/common_interfaces/tree/humble/std_msgs)
