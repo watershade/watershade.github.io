@@ -975,7 +975,7 @@ private:
 
 这部分函数的功能比较简单，但是用到的函数还是比较复杂的。
 
-### 2.4.3 配置依赖项
+#### 2.4.3 配置依赖项
 前面提到了我们用到了rclcpp和std_msgs这两个包，所以我们需要在package.xml中添加依赖项。添加内容：
 ```txt
 <depend>rclcpp</depend>
@@ -1008,7 +1008,7 @@ Finished <<< cpp_pubsub [3.95s]
 
 Summary: 1 package finished [4.55s]
 ```
-### 2.4.3 在这个package中间添加一个subscriber节点
+#### 2.4.3 在这个package中间添加一个subscriber节点
 照例从[这里](https://raw.githubusercontent.com/ros2/examples/humble/rclcpp/topics/minimal_subscriber/member_function.cpp)下载文件。
 ```bash
 $ wget -O src/cpp_pubsub/src/subscriber_member_function.cpp https://raw.githubusercontent.com/ros2/examples/humble/rclcpp/topics/minimal_subscriber/member_function.cpp
@@ -1069,13 +1069,182 @@ $ ros2 run cpp_pubsub talker
 ![cpp_pubsub测试图](img//simple_cpp_pubsub_test.gif)
 <p style="text-align:center; color:orange">图6：cpp_pubsub的测试图</p>
 
-### 2.4.4 总结
+#### 2.4.4 总结
 这一章节使用了入门教程提供的示例代码来测试两个node之间通过topic进行通讯。代码尽管不复杂，但是有很多地方需要详细了解才行。另外代码使用了modern c++。看起来后面还要更新自己的modern c++知识。
 
+### 2.5 尝试编写ament_python包
+本小节参照入门教程[Writing a simple publisher and subscriber (Python)](https://docs.ros.org/en/humble/Tutorials/Beginner-Client-Libraries/Writing-A-Simple-Py-Publisher-And-Subscriber.html)的内容。这一部分的功能和2.4节的基本一致，只是代码是用python编写的。
 
-## 三、项目开发
-## 四、项目开发
-## 五、项目开发
+这一节我们新建一个工作区名称叫做demo4_ws，然后在里面创建一个名称是py_pubsub类型是ament_python的package。如下：
+```
+$ mkdir -p demo4_ws/src
+$ cd demo4_ws
+$ ros2 pkg create py_pubsub --build-type ament_python --license "Apache-2.0" --destination-directory src --description "A simple publisher and subscriber example in Python" 
+$ tree src/py_pubsub/
+src/py_pubsub/
+├── LICENSE
+├── package.xml
+├── py_pubsub
+│   └── __init__.py
+├── resource
+│   └── py_pubsub
+├── setup.cfg
+├── setup.py
+└── test
+    ├── test_copyright.py
+    ├── test_flake8.py
+    └── test_pep257.py
+
+3 directories, 9 files
+```
+照例我们需要从示例库分别下载两份文件，一份是[publisher_member_function.py](https://raw.githubusercontent.com/ros2/examples/humble/rclpy/topics/minimal_publisher/examples_rclpy_minimal_publisher/publisher_member_function.py);另一份是[subscriber_member_function.py](https://raw.githubusercontent.com/ros2/examples/humble/rclpy/topics/minimal_subscriber/examples_rclpy_minimal_subscriber/subscriber_member_function.py)。这两个文件正如名称所表示的那样一个是publisher的代码一个是subscriber的代码。下载完成之后，我们可以使用vscode打开工程检视代码。
+如下：
+```bash
+$ wget -O src/py_pubsub/py_pubsub/publisher_member_function.py https://raw.githubusercontent.com/ros2/examples/humble/rclpy/topics/minimal_publisher/examples_rclpy_minimal_publisher/publisher_member_function.py
+$ wget -O src/py_pubsub/py_pubsub/subscriber_member_function.py https://raw.githubusercontent.com/ros2/examples/humble/rclpy/topics/minimal_subscriber/examples_rclpy_minimal_subscriber/subscriber_member_function.py
+$ ls src/py_pubsub/py_pubsub/
+__init__.py  publisher_member_function.py  subscriber_member_function.py
+$ code src/py_pubsub/
+```
+我们先从publisher_member_function.py这个文件开始
+开头三行
+```python
+import rclpy
+from rclpy.node import Node
+
+from std_msgs.msg import String
+```
+这两行导入了ROS2的一些基础包，其中rclpy是ROS2的python接口，Node是ROS2的节点基类。std_msgs是ROS2的标准消息类型。整个程序从main开始：
+```python
+def main(args=None):
+    rclpy.init(args=args)
+
+    minimal_publisher = MinimalPublisher()
+
+    rclpy.spin(minimal_publisher)
+
+    # Destroy the node explicitly
+    # (optional - otherwise it will be done automatically
+    # when the garbage collector destroys the node object)
+    minimal_publisher.destroy_node()
+    rclpy.shutdown()
+
+
+if __name__ == '__main__':
+    main()
+```
+main函数的逻辑基本和ament_cmake的一致。先调用rclpy.init初始化ROS2环境，然后创建了一个MinimalPublisher的实例，最后调用rclpy.spin让节点持续运行，直到节点被销毁(rclpy.shutdown)。在shutdown之前，这个函数还调用了 minimal_publisher.destroy_node()去销毁节点。这一点在前面的程序中没有看到。
+
+MinimalPublisher类如下：
+```python
+class MinimalPublisher(Node):
+
+    def __init__(self):
+        super().__init__('minimal_publisher')
+        self.publisher_ = self.create_publisher(String, 'topic', 10)
+        timer_period = 0.5  # seconds
+        self.timer = self.create_timer(timer_period, self.timer_callback)
+        self.i = 0
+
+    def timer_callback(self):
+        msg = String()
+        msg.data = 'Hello World: %d' % self.i
+        self.publisher_.publish(msg)
+        self.get_logger().info('Publishing: "%s"' % msg.data)
+        self.i += 1
+```
+这一部分逻辑也比较简单使用。整体创建了MinimalPublisher的类，继承自rclpy.node。然后使用rclpy.node.create_timer创建一个500ms调用一次的定时器。在timer_callback函数中，创建了一个std_msgs.msg.String类型的消息，设置了要发布的信息，发布并打印日志。
+这中间引用了很多rclpy和std_msgs的API。后面慢慢学习吧，不可能一蹴而就。
+
+然后我们再来看看subscriber_member_function.py的代码。开头也是引用了rclpy和std_msgs的包。main函数的流程也一致，只是这次创建了一个名称叫做MinimalSubscriber的类，继承自rclpy.node。然后使用rclpy.node.create_subscription订阅了topic。订阅的回调函数是listener_callback。在这个函数里面使用rclpy.node.get_logger打印日志。
+
+现在再来修改一下package.xml文件，添加依赖项。
+```xml
+<exec_depend>rclpy</exec_depend>
+<exec_depend>std_msgs</exec_depend>
+```
+注意这个和ament_cmake的标签不一样。后者之前使用的是一个`depend`标签。
+还记得setup.cfg和setup.py这两个文件的区别吗：
+* __setup.cfg__ 当包有可执行文件时需要setup.cfg，因此ros2 run可以找到它们
+* __setup.py__ 包含如何安装包的说明
+
+现在需要修改setup.py，来添加执行点(entry point):
+```python
+entry_points={
+        'console_scripts': [
+                'talker = py_pubsub.publisher_member_function:main',
+        ],
+},
+```
+现在再来检查一下setup.cfg文件。内容应当是：
+```txt
+[develop]
+script_dir=$base/lib/py_pubsub
+[install]
+install_scripts=$base/lib/py_pubsub
+```
+
+现在开始检查依赖，然后build整个package.
+```bash
+$ rosdep install -i --from-path src --rosdistro humble -y
+#All required rosdeps installed successfully
+$ colcon build
+## 如果你里面有多个package,也可以
+$ colcon build --packages-select py_pubsub
+Starting >>> py_pubsub
+--- stderr: py_pubsub                   
+/home/galileo/.local/lib/python3.10/site-packages/setuptools/_distutils/cmd.py:66: SetuptoolsDeprecationWarning: setup.py install is deprecated.
+!!
+
+        ********************************************************************************
+        Please avoid running ``setup.py`` directly.
+        Instead, use pypa/build, pypa/installer or other
+        standards-based tools.
+
+        See https://blog.ganssle.io/articles/2021/10/setup-py-deprecated.html for details.
+        ********************************************************************************
+
+!!
+  self.initialize_options()
+---
+Finished <<< py_pubsub [0.89s]
+
+Summary: 1 package finished [1.51s]
+  1 package had stderr output: py_pubsub
+```
+接着source一下overlay.并在两个终端分别运行talker和listener。
+在一个终端执行：
+```bash
+$ source install/setup.bash
+$ ros2 pkg list | grep py_pubsub
+py_pubsub
+$ ros2 pkg executables py_pubsub
+py_pubsub listener
+py_pubsub talker
+$ ros2 run py_pubsub listener
+```
+在另一个终端执行：
+在一个终端
+```bash
+$ source install/setup.bash
+$ ros2 pkg list | grep py_pubsub
+py_pubsub
+$ ros2 run py_pubsub talker
+```
+测试效果如下：
+![py_pubsub_test](img/py_pubsub_test.gif)
+<p style="text-align:center; color:orange">图7：py_pubsub的测试图</p>
+
+#### 2.5.2 总结
+这一章节使用了入门教程提供的示例代码来测试两个node之间通过topic进行通讯。代码尽管不复杂，但是有很多地方需要详细了解才行。
+
+### 2.6 使用c++编写ROS2的server和client
+
+本小节参照入门教程[Writing a simple service and client (C++)](https://docs.ros.org/en/humble/Tutorials/Beginner-Client-Libraries/Writing-A-Simple-Cpp-Service-And-Client.html)的内容。这一部分主要演示了ROS2的service怎么使用。
+
+## 三、X
+## 四、Y
+## 五、Z
 
 ## 六、Artemis机器人构想
 
