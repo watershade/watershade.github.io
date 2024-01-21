@@ -1069,6 +1069,8 @@ $ ros2 run cpp_pubsub talker
 ![cpp_pubsub测试图](img//simple_cpp_pubsub_test.gif)
 <p style="text-align:center; color:orange">图6：cpp_pubsub的测试图</p>
 
+需要说明的使用`ros2 pkg executables cpp_pubsub`检查到的`listener`和`talker`其实是在CMakelists.txt文件中定义的。
+
 #### 2.4.4 总结
 这一章节使用了入门教程提供的示例代码来测试两个node之间通过topic进行通讯。代码尽管不复杂，但是有很多地方需要详细了解才行。另外代码使用了modern c++。看起来后面还要更新自己的modern c++知识。
 
@@ -1235,12 +1237,194 @@ $ ros2 run py_pubsub talker
 ![py_pubsub_test](img/py_pubsub_test.gif)
 <p style="text-align:center; color:orange">图7：py_pubsub的测试图</p>
 
+请注意这里的`talker`和`listener`的名称其实是在前面setup.py文件中定义的。
+
 #### 2.5.2 总结
 这一章节使用了入门教程提供的示例代码来测试两个node之间通过topic进行通讯。代码尽管不复杂，但是有很多地方需要详细了解才行。
 
 ### 2.6 使用c++编写ROS2的server和client
+本小节参照入门教程[Writing a simple service and client (C++)](https://docs.ros.org/en/humble/Tutorials/Beginner-Client-Libraries/Writing-A-Simple-Cpp-Service-And-Client.html)的内容。这一部分主要演示了ROS2的service怎么使用。在这一章你会发现请求和响应的结构由`.srv`文件决定。
 
-本小节参照入门教程[Writing a simple service and client (C++)](https://docs.ros.org/en/humble/Tutorials/Beginner-Client-Libraries/Writing-A-Simple-Cpp-Service-And-Client.html)的内容。这一部分主要演示了ROS2的service怎么使用。
+这一次我们建立一个新的工作空间叫做cmake_ws,之后接下来几篇涉及ament_cmake的工程都放在这个目录中。
+```bash
+## 你需要先导航到你放置练习工程的目录中
+$ mkdir -p cmake_ws/src
+## 和前面一样我在操作时始终位于工作区根目录，这一点和官方热门不同，因此命令有一些区别
+$ cd cmke_ws
+$ 
+```
+然后我们来创建一个package，名字叫做cpp_srvcli，依赖于rclcpp和example_interfaces，构建类型还是ament_cmake,license还是“Apache-2.0”.请注意命令中名称的位置，要防止写在`--dependencies`后面。另外请注意[example_interfaces](https://github.com/ros2/example_interfaces)也是一个package,它包含构建请求和响应所需的`.srv`文件的包。你可以通过'ros2 pkg list'看到它。至于`.srv`的格式后面在专门做出说明。
+
+如下：
+```bash
+$ ros2 pkg list | grep example_
+example_interfaces
+$ ros2 pkg create cpp_srvcli  --destination-directory src  --build-type ament_cmake --license Apache-2.0 --dependencies rc
+```
+#### 2.6.1 创建server程序
+本次将创建一个求和(sum)服务。我们照例打开vscode编辑代码。这次我们将代码写在一个名称叫做`add_two_ints_server.cpp`的文件中。文件中代码如下：
+```c++
+#include "rclcpp/rclcpp.hpp"
+#include "example_interfaces/srv/add_two_ints.hpp"
+
+#include <memory>
+
+void add(const std::shared_ptr<example_interfaces::srv::AddTwoInts::Request> request,
+          std::shared_ptr<example_interfaces::srv::AddTwoInts::Response>      response)
+{
+  response->sum = request->a + request->b;
+  RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Incoming request\na: %ld" " b: %ld",
+                request->a, request->b);
+  RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "sending back response: [%ld]", (long int)response->sum);
+}
+
+int main(int argc, char **argv)
+{
+  rclcpp::init(argc, argv);
+
+  std::shared_ptr<rclcpp::Node> node = rclcpp::Node::make_shared("add_two_ints_server");
+
+  rclcpp::Service<example_interfaces::srv::AddTwoInts>::SharedPtr service =
+    node->create_service<example_interfaces::srv::AddTwoInts>("add_two_ints", &add);
+
+  RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Ready to add two ints.");
+
+  rclcpp::spin(node);
+  rclcpp::shutdown();
+}
+```
+这段代码看似简单，但是本质还是挺复杂的。如果你深入example_interfaces::srv::AddTwoInts::Request和example_interfaces::srv::AddTwoInts::Response去查看，会发现AddTwoInts是一个很复杂的类型。里面用到了很多modern c的新特性。
+
+这段代码的功能其实就是从request里面获取a和b两个变量的值然后相加，再将结果返回给response，同时在服务器这一侧使用`rclcpp::get_logger`打印必要的logger.
+
+程序创建节点使用了`rclcpp::Node::make_shared`函数实现的：
+```c++
+std::shared_ptr<rclcpp::Node> node = rclcpp::Node::make_shared("add_two_ints_server");
+```
+为该节点创建一个名为 add_two_ints 的服务，并使用 &add 方法自动在网络上通告它:
+```c++
+rclcpp::Service<example_interfaces::srv::AddTwoInts>::SharedPtr service =
+node->create_service<example_interfaces::srv::AddTwoInts>("add_two_ints", &add);
+```
+#### 2.6.2 创建client程序
+这部分我们将代码写在一个名称叫做`add_two_ints_client.cpp`的文件中。文件中代码如下：
+```c++
+#include "rclcpp/rclcpp.hpp"
+#include "example_interfaces/srv/add_two_ints.hpp"
+
+#include <chrono>
+#include <cstdlib>
+#include <memory>
+
+using namespace std::chrono_literals;
+
+int main(int argc, char **argv)
+{
+  rclcpp::init(argc, argv);
+
+  if (argc != 3) {
+      RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "usage: add_two_ints_client X Y");
+      return 1;
+  }
+
+  std::shared_ptr<rclcpp::Node> node = rclcpp::Node::make_shared("add_two_ints_client");
+  rclcpp::Client<example_interfaces::srv::AddTwoInts>::SharedPtr client =
+    node->create_client<example_interfaces::srv::AddTwoInts>("add_two_ints");
+
+  auto request = std::make_shared<example_interfaces::srv::AddTwoInts::Request>();
+  request->a = atoll(argv[1]);
+  request->b = atoll(argv[2]);
+
+  while (!client->wait_for_service(1s)) {
+    if (!rclcpp::ok()) {
+      RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Interrupted while waiting for the service. Exiting.");
+      return 0;
+    }
+    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "service not available, waiting again...");
+  }
+
+  auto result = client->async_send_request(request);
+  // Wait for the result.
+  if (rclcpp::spin_until_future_complete(node, result) ==
+    rclcpp::FutureReturnCode::SUCCESS)
+  {
+    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Sum: %ld", result.get()->sum);
+  } else {
+    RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Failed to call service add_two_ints");
+  }
+
+  rclcpp::shutdown();
+  return 0;
+}
+```
+这段代码也使用了智能指针，我会转么写一篇文章将智能指针。
+
+这段代码先使用rclcpp.init初始化.然后创建node,使用rclcpp::Node::create_client创建client。接着创建request,并设置a和b的值。然后以1s的周期去检查服务器状态，如果服务器不可用就继续等待。rclcpp出错则会报错并退出。如果服务器可用就发送request并用异步方式等待回应，这段代码使用的是`async_send_request`来实现的.使用spin_until_future_complete去等待服务器的响应。如果完成就使用`rclcpp::get_logger`打印结果。最后关闭并推出。
+
+这段程序中还是用到了`atoll`，它的作用和`atol`类似。`atol`是把字符串转成长整形(long int),`atoll`是把字符串转成长长整形(long long int)。主要原因是我们的srv文件中定义的服务输入是int64的：
+```txt
+int64 a
+int64 b
+---
+int64 sum
+```
+
+#### 2.6.3 元文件和编译规则设置
+我们需要的两个依赖项是rclcpp和example_interfaces。我们需要在`package.xml`中添加它们.好在我们在创建的时候已经添加。现在只需要检查一下。现在向CMakeLists.txt文件添加依赖项：
+```txt
+add_executable(server src/add_two_ints_server.cpp)
+ament_target_dependencies(server rclcpp example_interfaces)
+
+add_executable(client src/add_two_ints_client.cpp)
+ament_target_dependencies(client rclcpp example_interfaces)
+
+install(TARGETS 
+        server 
+        client 
+        DESTINATION lib/${PROJECT_NAME})
+```
+编辑好之后，我们检查依赖项并编译。
+```bash
+$ rosdep install -i --from-path src --rosdistro humble -y
+#All required rosdeps installed successfully
+$ colcon build --packages-select cpp_srvcli
+Starting >>> cpp_srvcli
+Finished <<< cpp_srvcli [4.09s]                     
+
+Summary: 1 package finished [4.70s]
+```
+
+#### 2.6.4 运行程序
+在一个终端运行client：
+```bash
+$ source install/setup.bash
+## 确保package可见
+$ ros2 pkg list | grep cpp_srvcli
+cpp_srvcli
+## 查询可执行程序
+$ ros2 pkg executables cpp_srvcli
+cpp_srvcli client
+cpp_srvcli server
+## 运行client
+$ ros2 run cpp_srvcli client 12 56
+```
+请注意，理论上服务器要先运行。这里让client运行是为了验证client程序的等待过程是否会报错。我们可以故意等几秒钟再启动server：
+```bash
+$ source install/setup.bash
+## 运行service
+$ ros2 run cpp_srvcli server
+```
+结果如下图8所示。
+![cpp_srvcli测试图](img/cpp_srvcli_test.gif)
+<p style="text-align:center; color:orange">图8：cpp_srvcli测试图</p>
+
+#### 2.6.5 总结
+本章我们学习了ROS2的service的使用，并编写了server和client程序。可以看出这部分的程序还是非常复杂的。至于srv我们本次使用了外部的srv,后面我们还需要学习自己编写srv文件和服务器和客户端的类的编写。
+
+### 2.7 使用python编写ROS2的server和client
+本小节参照入门教程[Writing a simple service and client (Python)](https://docs.ros.org/en/humble/Tutorials/Beginner-Client-Libraries/Writing-A-Simple-Py-Service-And-Client.htm)的内容。这一部分功能和上一小节基本一致，只是语言变成了python.
+
+
 
 ## 三、X
 ## 四、Y
