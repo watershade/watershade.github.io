@@ -1404,7 +1404,7 @@ cpp_srvcli
 ## 查询可执行程序
 $ ros2 pkg executables cpp_srvcli
 cpp_srvcli client
-cpp_srvcli server
+cpp_srvcli service
 ## 运行client
 $ ros2 run cpp_srvcli client 12 56
 ```
@@ -1412,7 +1412,7 @@ $ ros2 run cpp_srvcli client 12 56
 ```bash
 $ source install/setup.bash
 ## 运行service
-$ ros2 run cpp_srvcli server
+$ ros2 run cpp_srvcli service
 ```
 结果如下图8所示。
 ![cpp_srvcli测试图](img/cpp_srvcli_test.gif)
@@ -1423,6 +1423,188 @@ $ ros2 run cpp_srvcli server
 
 ### 2.7 使用python编写ROS2的server和client
 本小节参照入门教程[Writing a simple service and client (Python)](https://docs.ros.org/en/humble/Tutorials/Beginner-Client-Libraries/Writing-A-Simple-Py-Service-And-Client.htm)的内容。这一部分功能和上一小节基本一致，只是语言变成了python.
+
+这一次我们建立一个新的工作空间叫做python_ws,之后接下来几篇涉及ament_python的工程都放在这个目录中。
+```bash
+## 你需要先导航到你放置练工程的目录中
+$ mkdir -p python_ws/src
+## 和前面一样我在操作时始终位于工作区根目录，因此命令有一些区别
+$ cd python_ws
+```
+然后我们来创建一个package，名字叫做py_srvcli，依赖于rclpy和example_interfaces，构建类型还是ament_python,license还是“Apache-2.0”.请注意命令中名称的位置，要防止写在`--dependencies`后面。另外请注意[example_interfaces](https://github.com/ros2/example_interfaces)也是一个package,它包含构建请求和响应所需的`.srv`文件的包。你可以通过'ros2 pkg list'看到它。至于`.srv`的格式后面在专门做出说明。
+如下：
+```bash
+$ ros2 pkg list | grep example_
+example_interfaces
+$ ros2 pkg create py_srvcli  --destination-directory src  --build-type ament_python --license Apache-2.0 --dependencies rclpy example_interfaces --description "Python client server tutorial"
+$ tree src/py_srvcli/
+src/py_srvcli/
+├── LICENSE
+├── package.xml
+├── py_srvcli
+│   └── __init__.py
+├── resource
+│   └── py_srvcli
+├── setup.cfg
+├── setup.py
+└── test
+    ├── test_copyright.py
+    ├── test_flake8.py
+    └── test_pep257.py
+
+3 directories, 9 files
+```
+
+#### 2.7.1 创建server程序
+本次将创建一个求和(sum)服务。我们照例打开vscode编辑代码。这次我们将代码写在一个名称叫做`service_member_function.py`的文件中（目录是`src/py_srvcli/py_srvcli`）。文件中代码如下：
+```python
+from example_interfaces.srv import AddTwoInts
+
+import rclpy
+from rclpy.node import Node
+
+
+class MinimalService(Node):
+
+    def __init__(self):
+        super().__init__('minimal_service')
+        self.srv = self.create_service(AddTwoInts, 'add_two_ints', self.add_two_ints_callback)
+
+    def add_two_ints_callback(self, request, response):
+        response.sum = request.a + request.b
+        self.get_logger().info('Incoming request\na: %d b: %d' % (request.a, request.b))
+
+        return response
+
+
+def main():
+    rclpy.init()
+
+    minimal_service = MinimalService()
+
+    rclpy.spin(minimal_service)
+
+    rclpy.shutdown()
+
+
+if __name__ == '__main__':
+    main()
+```
+这段代码的开头三行引入了rclcpp和example_interfaces的依赖，然后定义了一个类MinimalService，继承自Node。MinimalService的构造函数中创建了一个服务，服务的类型是AddTwoInts，服务的名称是add_two_ints，回调函数是add_two_ints_callback。 add_two_ints_callback函数的功能是接收请求，计算结果，并返回响应。
+
+MinimalService的main函数中创建了一个MinimalService的实例，并启动spin。spin的功能是不断地检查是否有可用的服务请求，如果有就调用回调函数。
+
+#### 2.7.2 创建client程序
+这部分我们将代码写在一个名称叫做`client_member_function.py`的文件中。文件中代码如下：
+```python
+import sys
+
+from example_interfaces.srv import AddTwoInts
+import rclpy
+from rclpy.node import Node
+
+
+class MinimalClientAsync(Node):
+
+    def __init__(self):
+        super().__init__('minimal_client_async')
+        self.cli = self.create_client(AddTwoInts, 'add_two_ints')
+        while not self.cli.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info('service not available, waiting again...')
+        self.req = AddTwoInts.Request()
+
+    def send_request(self, a, b):
+        self.req.a = a
+        self.req.b = b
+        self.future = self.cli.call_async(self.req)
+        rclpy.spin_until_future_complete(self, self.future)
+        return self.future.result()
+
+
+def main():
+    rclpy.init()
+
+    minimal_client = MinimalClientAsync()
+    response = minimal_client.send_request(int(sys.argv[1]), int(sys.argv[2]))
+    minimal_client.get_logger().info(
+        'Result of add_two_ints: for %d + %d = %d' %
+        (int(sys.argv[1]), int(sys.argv[2]), response.sum))
+
+    minimal_client.destroy_node()
+    rclpy.shutdown()
+
+
+if __name__ == '__main__':
+    main()
+```
+这段代码比较简洁。照例是使用example_interfaces和rclpy的api.初始化，接着启用客户端发送请求，最后打印结果，最后销毁节点并关闭rclpy。具体代码不再一一分析。请查看入门教程介绍。
+
+#### 2.7.3 修改entry point，并编译
+现在我们来修改setup.py并添加`entry point`，新增内容：
+```python
+entry_points={
+    'console_scripts': [
+        'service = py_srvcli.service_member_function:main',
+        'client = py_srvcli.client_member_function:main',
+    ],
+},
+```
+
+然后检查依赖项并编译：
+```bash
+$ rosdep install -i --from-path src --rosdistro humble -y
+#All required rosdeps installed successfully
+$ colcon build --packages-select py_srvcli
+Starting >>> py_srvcli
+--- stderr: py_srvcli                   
+/home/galileo/.local/lib/python3.10/site-packages/setuptools/_distutils/cmd.py:66: SetuptoolsDeprecationWarning: setup.py install is deprecated.
+!!
+
+        ********************************************************************************
+        Please avoid running ``setup.py`` directly.
+        Instead, use pypa/build, pypa/installer or other
+        standards-based tools.
+
+        See https://blog.ganssle.io/articles/2021/10/setup-py-deprecated.html for details.
+        ********************************************************************************
+
+!!
+  self.initialize_options()
+---
+Finished <<< py_srvcli [0.78s]
+
+Summary: 1 package finished [1.39s]
+  1 package had stderr output: py_srvcli
+```
+
+#### 2.7.4 运行测试
+
+在一个终端运行client：
+```bash
+$ source install/setup.bash
+## 确保package可见
+$ ros2 pkg list | grep py_srvcli
+py_srvcli
+## 查询可执行程序
+$ ros2 pkg executables py_srvcli
+py_srvcli client
+py_srvcli service
+## 运行client
+$ ros2 run py_srvcli client 78 10
+```
+请注意，理论上服务器要先运行。这里让client运行是为了验证client程序的等待过程是否会报错。我们可以故意等几秒钟再启动server：
+```bash
+$ source install/setup.bash
+## 运行service
+$ ros2 run py_srvcli service
+```
+#### 2.7.5 意外
+
+在上面测试的过程中我不小心将`service = py_srvcli.service_member_function:main`写成了`servive = py_srvcli.service_member_fuction:main`，导致程序无法运行。后来我修正之后，尝试重新编译之后程序出现了三个可执行程序：`client`，`servive`和`service`。我甚至使用了`colcon build --cmake-clean-first`也没有效果。最后我索性删除build,install和log目录。然后重新编译。最后就可以了。（变成了只有两个可执行程序。）
+
+#### 2.7.6 总结
+相比于2.6,可以发现2.7中的python程序本身更加简洁。流程大同小异。setup.py和CMakeLists.txt文件在配置execute point上有相同的作用。
+
 
 
 
