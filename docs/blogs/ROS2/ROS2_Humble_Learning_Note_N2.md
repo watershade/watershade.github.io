@@ -1245,10 +1245,10 @@ $ ros2 run py_pubsub talker
 ### 2.6 使用c++编写ROS2的server和client
 本小节参照入门教程[Writing a simple service and client (C++)](https://docs.ros.org/en/humble/Tutorials/Beginner-Client-Libraries/Writing-A-Simple-Cpp-Service-And-Client.html)的内容。这一部分主要演示了ROS2的service怎么使用。在这一章你会发现请求和响应的结构由`.srv`文件决定。
 
-这一次我们建立一个新的工作空间叫做cmake_ws,之后接下来几篇涉及ament_cmake的工程都放在这个目录中。
+这一次我们建立一个新的工作空间叫做demo5_ws：。
 ```bash
 ## 你需要先导航到你放置练习工程的目录中
-$ mkdir -p cmake_ws/src
+$ mkdir -p demo5_ws/src
 ## 和前面一样我在操作时始终位于工作区根目录，这一点和官方热门不同，因此命令有一些区别
 $ cd cmke_ws
 $ 
@@ -1424,12 +1424,12 @@ $ ros2 run cpp_srvcli service
 ### 2.7 使用python编写ROS2的server和client
 本小节参照入门教程[Writing a simple service and client (Python)](https://docs.ros.org/en/humble/Tutorials/Beginner-Client-Libraries/Writing-A-Simple-Py-Service-And-Client.htm)的内容。这一部分功能和上一小节基本一致，只是语言变成了python.
 
-这一次我们建立一个新的工作空间叫做python_ws,之后接下来几篇涉及ament_python的工程都放在这个目录中。
+这一次我们建立一个新的工作空间叫做demo6_ws,之后接下来几篇涉及ament_python的工程都放在这个目录中。
 ```bash
 ## 你需要先导航到你放置练工程的目录中
-$ mkdir -p python_ws/src
+$ mkdir -p demo6_ws/src
 ## 和前面一样我在操作时始终位于工作区根目录，因此命令有一些区别
-$ cd python_ws
+$ cd demo6_ws
 ```
 然后我们来创建一个package，名字叫做py_srvcli，依赖于rclpy和example_interfaces，构建类型还是ament_python,license还是“Apache-2.0”.请注意命令中名称的位置，要防止写在`--dependencies`后面。另外请注意[example_interfaces](https://github.com/ros2/example_interfaces)也是一个package,它包含构建请求和响应所需的`.srv`文件的包。你可以通过'ros2 pkg list'看到它。至于`.srv`的格式后面在专门做出说明。
 如下：
@@ -1605,6 +1605,8 @@ $ ros2 run py_srvcli service
 #### 2.7.6 总结
 相比于2.6,可以发现2.7中的python程序本身更加简洁。流程大同小异。setup.py和CMakeLists.txt文件在配置execute point上有相同的作用。
 
+### 2.8 编写定制化的msg和srv文件
+在2.6和2.7中我们使用了examples_interfaces中的srv文件。但是我们也可以自己编写srv文件。（如果不能支持也太奇怪了。）所以本章将编写service(服务)需要的srv文件。我们在2.4和2.5中实现topic程序的时候使用的std_msgs库中的标准string格式的消息。其实还可一通过msg文件定制自己需要的消息。我们也在这一小节介绍。
 
 
 
