@@ -1606,11 +1606,219 @@ $ ros2 run py_srvcli service
 相比于2.6,可以发现2.7中的python程序本身更加简洁。流程大同小异。setup.py和CMakeLists.txt文件在配置execute point上有相同的作用。
 
 ### 2.8 编写定制化的msg和srv文件
+本小节参照入门教程[Creating custom msg and srv files](https://docs.ros.org/en/humble/Tutorials/Beginner-Client-Libraries/Custom-ROS2-Interfaces.html)的内容。
+
 在2.6和2.7中我们使用了examples_interfaces中的srv文件。但是我们也可以自己编写srv文件。（如果不能支持也太奇怪了。）所以本章将编写service(服务)需要的srv文件。我们在2.4和2.5中实现topic程序的时候使用的std_msgs库中的标准string格式的消息。其实还可一通过msg文件定制自己需要的消息。我们也在这一小节介绍。
 
+本小节内容分为创建自定义接口和接口测试部分。篇幅较大，所以中间个别之前讲过的部分就会省略掉。因为本小节内容涉及接口部分，是一个比较综合的测试。所以本小节的文件夹明明就不以demo+数字命名。而是直接叫做`custom_if_ws`.
+我们首先建立这个目录：
+```bash
+## 首先导航到你放置练习工程的目录
+$ mkdir -p custom_if_ws/src
+## 然后进入目录
+$ cd custom_if_ws
+```
+### 2.8.1 IDL(https://www.omg.org/spec/IDL/)
+在开始正文之前，我们先来点理论的。本部分内容参考了[IDL](https://www.omg.org/spec/IDL/)、[IDL Mapping](https://design.ros2.org/articles/idl_interface_definition.html)和[About-Internal-Interfaces](https://docs.ros.org/en/rolling/Concepts/Advanced/About-Internal-Interfaces.html)的部分内容。
+
+IDL是OMG组织定义的一门描述性语言。我们来看一下OMG组织是如何定义IDL语言的：
+```txt
+IDL is a descriptive language used to define data types and interfaces in a way that is independent of the programming language or operating system/processor platform. The IDL specifies only the syntax used to define the data types and interfaces. It is normally used in connection with other specifications that further define how these types/interfaces are utilized in specific contexts and platforms.
+
+IDL 是一种描述性语言，用于以独立于编程语言或操作系统/处理器平台的方式定义数据类型和接口。 IDL 仅指定用于定义数据类型和接口的语法。 它通常与其他规范结合使用，进一步定义如何在特定上下文和平台中使用这些类型/接口。
+```
+
+你可能会问了，我们现在正在讲srv和msg,这和IDL有什么关系呐？那是因为DDS使用IDL定义的数据格式。而DDS正是ROS2的核心通信组件。因此ROS2当然和IDL有关，而且IDL对于ROS2很重要。目前IDL语言最新的标准是2018年定义的4.2版本。ROS2支持了IDL 4.2版本的子集。如果你有打开idl文件的必要，有很多支持vscode的IDL解析插件，比如RTL开发的“OMG IDL”，当然还有更多。用户定义自己的msg和srv接口之后（表达了用户的意图），需要通过某种方式让ros2能够按照这个接口去通讯（ROS2底层需要理解用户的意图），这时候就出现了一套rosidl的工具来帮助翻译msg,srv（还有后面的action）文件成idl格式的数据接口。(实际上，整个过程可能更复杂。我会在第三节中再仔细将这部分的内容。)我们在这一节（即2.8节）中的主要工作就是掌握这些方法。
+
+ROS2支持的IDL的子集，大家可以查看[这个链接IDL MApping](https://design.ros2.org/articles/idl_interface_definition.html).这里简单罗列如下：
+* 注释（Comments）： 行注释 (//) 和块注释(/* ... */)都支持。
+* 标识符（Identifiers）：标识符必须以 ASCII 字母字符开头，后跟任意数量的 ASCII 字母、数字和下划线(_)字符。
+* 字面值（Literals）：整形（Integer），字符（Character），字符串（String），浮点数（Floating-point）和定点数（Fixed-point）。
+* 预处理（Preprocessing）：目前，读取“.idl”文件时不会进行任何预处理。
+* 基本数据类型(Basic Types)：整形(short,long,long long,unsigned short,unsigned long,unsigned long long, int8, uint8, int16, uint16, int32, uint32, int64, uint64), 浮点数(float, double, long double), 字符(char， wchar), 布尔数(boolean), 8进制数(octet).
+* 模板类型（Template Types）：Sequences（sequence<type_spec>， sequence<type_spec, N>）， string，wstring
+* 结构化类型：结构体（Structures）， 枚举（Enumerations）和数组（Arrays）
+
+下面描述一下IDL和其他语言的基础类型的映射关系：
+ IDL type | C type | C++ type | Python type 
+---|---|---|---
+ float | float | float | float 
+ double | double | double | float 
+ long double | long double | long double2 | float 
+ char | unsigned char | unsigned char | str with length 1 
+ wchar | char16_t | char16_t | str with length 1 
+ boolean | _Bool | bool | bool 
+ octet | unsigned char | std::byte1 | bytes with length 1 
+ int8 | int8_t | int8_t | int 
+ uint8 | uint8_t | uint8_t | int 
+ int16 | int16_t | int16_t | int 
+ uint16 | uint16_t | uint16_t | int 
+ int32 | int32_t | int32_t | int 
+ uint32 | uint32_t | uint32_t | int 
+ int64 | int64_t | int64_t | int 
+ uint64 | uint64_t | uint64_t | int 
+
+下面描述一下IDL和其他语言的复杂类型的映射关系：
+ IDL type | C type | C++ type | Python type 
+---|---|---|---
+ T[N] | T[N] | std::array&lt;T, N&gt; | list 
+ sequence&lt;T&gt; | struct {size_t, T * } | std::vector&lt;T&gt; | list 
+ sequence&lt;T, N&gt; | struct {size_t, T * }, size_t N | std::vector&lt;T&gt; | list 
+ string | char * | std::string | str 
+ string&lt;N&gt; | char * | std::string | str 
+ wstring | char16_t * | std::u16string | str 
+ wstring&lt;N&gt; | char16_t * | std::u16string | str 
+
+ <font color=red>以上仅仅是部分摘录，而且不一定准确。建议阅读原文。</font>
+
+为了便于理解整个过程，我将这个过程的示意图转载如下：
+![rosidl动态消息类型](img/ros_idl_api_stack_dynamic.png)
+<p style="text-align:center; color:orange">图9：rrosidl动态消息类型</p>
+
+这里需要将一个概念：metadata,元数据。元数据（Metadata），又称中介数据、中继数据，为描述数据的数据（data about data），主要是描述数据属性（property）的信息，用来支持如指示存储位置、历史数据、资源查找、文件记录等功能。（引用自百度百科，我觉得这种说法还是有道理的。）我们在下文编写的src,msg文件本质是一个元数据文件。
 
 
-## 三、X
+#### 2.8.2 创建自定义msg和srv接口
+按照入门教程的描述，自己制作的msg和srv文件是需要放在一个单独的ament_cmake工程中，借助rosidl的一些工具来生成代码。因此我们要创建一个ament_cmake类型的package，包的名称叫做tutorial_interfaces：
+```bash
+$ ros2 pkg create tutorial_interfaces --build-type ament_cmake --destination-dir src/ --license Apache-2.0 --description "A tutorial package with custom msg and srv interfaces"
+## 然后创建两个文件夹
+$ mkdir src/tutorial_interfaces/msg  src/tutorial_interfaces/srv
+$ tree src/tutorial_interfaces/
+src/tutorial_interfaces/
+├── CMakeLists.txt
+├── include
+│   └── tutorial_interfaces
+├── LICENSE
+├── msg
+├── package.xml
+├── src
+└── srv
+
+5 directories, 3 files
+## 使用vscode去编辑代码
+$ code src/tutorial_interfaces/
+```
+按照教程在msg中创建名为Num.msg的文件，内容填写为：
+```txt
+int64 num
+```
+请注意文件命名的时候单词首字母大写，这应该是一种规范。（具体原因暂时不知道，不大写应该也没有问题。只是如果你使用`ros2 interface list`去查看所有的接口的时候，你会发现接口的BaseName的命名都是字母首字母大写，比如`geometry_msgs/msg/PoseArray`。）这个文件应该也可以理解用来发布订阅的消息中包含一个名字叫num的int64类型的变量。
+
+接着继续创建另一个名为Sphere.msg的msg文件，内容填写为：
+```txt
+geometry_msgs/Point center
+float64 radius
+```
+通过`ros2 interface list`确实能够查看到这个类型（名称是geometry_msgs/msg/Pose）：
+```base
+$ ros2 interface show geometry_msgs/msg/Pose
+# A representation of pose in free space, composed of position and orientation.
+
+Point position
+	float64 x
+	float64 y
+	float64 z
+Quaternion orientation
+	float64 x 0
+	float64 y 0
+	float64 z 0
+	float64 w 1
+$ ros2 interface show geometry_msgs/msg/Point
+# This contains the position of a point in free space
+float64 x
+float64 y
+float64 z
+```
+可以看出geometry_msgs/Point其实就是一个三个float64组成的矢量。
+而要定义的Sphere除了这个点之外还定义了半径radius，半径也是float64的。
+
+我们接着在定义一个名字叫AddThreeInts.srv的srv文件，既然是srv就需要两组数据，一组是请求的(request)另一组是响应的(response).srv的表示也非常简洁，用一行`---`隔开了上边的rquest和下边的response。如下：
+```txt
+int64 a
+int64 b
+int64 c
+---
+int64 sum
+```
+这个文件和example_interfaces的AddTwoInts.srv类似。只是2个请求参数变成了这里的3个。
+
+编辑好这3个文件之后，我们就需要来编辑依赖项和CMake配置等信息。
+这一节需要用到geometry_msgs和rosidl_default_generators这两个依赖项。前者在Sphere.msg中用到了，后者是rosidl转换需要的依赖项。要添加内容如下：
+```txt
+find_package(geometry_msgs REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
+
+rosidl_generate_interfaces(${PROJECT_NAME}
+  "msg/Num.msg"
+  "msg/Sphere.msg"
+  "srv/AddThreeInts.srv"
+  DEPENDENCIES geometry_msgs # Add packages that above messages depend on, in this case geometry_msgs for Sphere.msg
+)
+```
+注意真个文件没有必要添加`add_executable`标签。`rosidl_generate_interfaces`的标签的格式请注意。
+
+接着修改`package.xml`文件。它的编写比我们之前在格式都复杂一些：
+```txt
+<depend>geometry_msgs</depend>
+<buildtool_depend>rosidl_default_generators</buildtool_depend>
+<exec_depend>rosidl_default_runtime</exec_depend>
+<member_of_group>rosidl_interface_packages</member_of_group>
+```
+通用依赖项(即在build,execute,test阶段都用到的依赖项)是geometry_msgs。rosidl_default_generators只能在build的时候用到，而rosidl_default_runtime只能在execute的时候用到。member_of_group教程说的是依赖组的名称。这一点我也没怎么理解。但whatever,就这么着吧。后面看看能不能理解。
+
+好了，现在我们准备编译吧：
+```bash
+$ rosdep install -i --from-path src --rosdistro humble -y
+#All required rosdeps installed successfully
+$ colcon build  --packages-select tutorial_interfaces
+[0.757s] WARNING:colcon.colcon_core.prefix_path.colcon:The path '/home/galileo/Workspaces/ROS2/execises/python_ws/install' in the environment variable COLCON_PREFIX_PATH doesn't exist
+[0.757s] WARNING:colcon.colcon_ros.prefix_path.ament:The path '/home/galileo/Workspaces/ROS2/execises/python_ws/install/py_srvcli' in the environment variable AMENT_PREFIX_PATH doesn't exist
+Starting >>> tutorial_interfaces
+Finished <<< tutorial_interfaces [3.04s]                     
+
+Summary: 1 package finished [3.65s]
+```
+简单测试一下吧：
+```bash
+$ source install/setup.bash
+$ ros2 interface list | grep -E 'Num|Sphere|AddThreeInts'
+    tutorial_interfaces/msg/Num
+    tutorial_interfaces/msg/Sphere
+    tutorial_interfaces/srv/AddThreeInts
+$ ros2 interface show tutorial_interfaces/msg/Num
+int64 num
+$ ros2 interface show geometry_msgs/msg/Point
+# This contains the position of a point in free space
+float64 x
+float64 y
+float64 z
+$ ros2 interface show tutorial_interfaces/srv/AddThreeInts
+int64 a
+int64 b
+int64 c
+---
+int64 sum
+```
+这和我们的设置一致。说明我们的接口设置完成。但是这些接口到底好不好用呐？我们在下文再做测试。
+
+#### 2.8.3 创建自定义msg和srv接口
+
+
+
+
+## 三、ROS API
+
+* `rmw`: the ROS middleware interface. The rmw API is the interface between the ROS 2 software stack and the underlying middleware implementation. The underlying middleware used for ROS 2 is either a DDS or RTPS implementation, and is responsible for discovery, publish and subscribe mechanics, request-reply mechanics for services, and serialization of message types.
+* `rpl`: the ROS client library interface. The rcl API is a slightly higher level API which is used to implement the client libraries and does not touch the middleware implementation directly, but rather does so through the ROS middleware interface (rmw API) abstraction.
+
+![ROS2](img/ros_client_library_api_stack.png)
+<p style="text-align:center; color:orange">图？：ros客户端库API分层</p>
+
+
+
+### 3.1
+
 ## 四、Y
 ## 五、Z
 
@@ -1632,7 +1840,10 @@ ROS相关：
 * [ROS Tutorials](http://wiki.ros.org/ros_tutorials)
 Jetson相关：
 * [ament](https://docs.ros.org/en/foxy/Concepts/About-Build-System.html)
-
+* [rosidl](https://github.com/ros2/rosidl/tree/humble)
+* [About-Internal-Interfaces](https://docs.ros.org/en/rolling/Concepts/Advanced/About-Internal-Interfaces.html)
+* [IDL](https://www.omg.org/spec/IDL/)
+* [IDL Mapping](https://design.ros2.org/articles/idl_interface_definition.html)
 
 Linux相关：
 * [Tmux使用教程](https://www.ruanyifeng.com/blog/2019/10/tmux.html)
