@@ -1618,7 +1618,7 @@ $ mkdir -p custom_if_ws/src
 ## 然后进入目录
 $ cd custom_if_ws
 ```
-### 2.8.1 IDL(https://www.omg.org/spec/IDL/)
+#### 2.8.1 IDL(https://www.omg.org/spec/IDL/)
 在开始正文之前，我们先来点理论的。本部分内容参考了[IDL](https://www.omg.org/spec/IDL/)、[IDL Mapping](https://design.ros2.org/articles/idl_interface_definition.html)和[About-Internal-Interfaces](https://docs.ros.org/en/rolling/Concepts/Advanced/About-Internal-Interfaces.html)的部分内容。
 
 IDL是OMG组织定义的一门描述性语言。我们来看一下OMG组织是如何定义IDL语言的：
@@ -1802,9 +1802,195 @@ int64 sum
 ```
 这和我们的设置一致。说明我们的接口设置完成。但是这些接口到底好不好用呐？我们在下文再做测试。
 
-#### 2.8.3 创建自定义msg和srv接口
+#### 2.8.3 测试前准备
+入门教程里面是将前几课的教程放在一个叫做ros_ws的文件夹。所以它们可以直接就在原来的工作空间操作。但是我们每一刻都是一个独立的工作空间。你可能就要说：你是不是傻眼了？那倒不至于。其实我当时将教程分开是考虑到后面的教程会修改前面的代码。这样独立开来会有很多好处。现在的解决方案也异常简单：直接拷贝一份过来修改成我们需要的代码就可以。（请注意我的demo3_ws、demo4_ws和本节的custom_if_ws都在同一个目录下。）我们可以这样将需要的工程拷贝过来就成，我们以2.4节的cpp_pubsub为例：
+```bash
+$ cp -r ../demo3_ws/src/cpp_pubsub/ src/
+```
+接着我们索性将2.5,2.6和2.7节的package全部拷贝过来（不是剪切）：
+```bash
+$ cp -r ../demo4_ws/src/py_pubsub/ src/
+$ cp -r ../demo5_ws/src/cpp_srvcli/ src/
+$ cp -r ../demo6_ws/src/py_srvcli/ src/
+$ ls src/
+cpp_pubsub  cpp_srvcli  py_pubsub  py_srvcli  tutorial_interfaces
+```
 
+这样我们就将原来的package源代码都拷贝过来了。接下来几个小节我们分别修改topic和service的示例工程，然后编译运行测试。
 
+#### 2.8.3 cpp_pubsub使用tutorial_interfaces/msg/Num消息接口
+这一节我们下来使用cpp_pubsub来测试Num.msg接口。
+
+先来看publisher_member_function.cpp这个文件的修改。这个文件的功能是发布消息。原来的教程使用的是`std_msgs::msg::String`这种类型来传递数据，这一次我们将使用2.8.1节中创建的`tutorial_interfaces::msg::Num`接口来传递数据。具体修改见下图：
+![rosidl动态消息类型](img/diff_publisher_member_function.png)
+<p style="text-align:center; color:orange">图10：publisher_member_function代码差异</p>
+下面是修改总结：
+
+1. std_msgs/msg/string.hpp 替换为 tutorial_interfaces/msg/num.hpp
+2. create_publisher的模板由<std_msgs::msg::String>改为<tutorial_interfaces::msg::Num>。
+3. 回调的消息有String变成了Num。RCLCPP_INFO函数被更改为了RCLCPP_INFO_STREAM。
+
+现在我们再来看subscriber_member_function.cpp这个文件的修改。这个文件的功能是订阅消息。原来的教程使用的是`std_msgs::msg::String`这种类型来接收数据，这一次我们将使用2.8.1节中创建的`tutorial_interfaces::msg::Num`接口来接收数据。具体修改见下图：
+![rosidl动态消息类型](img/diff_subscriber_member_function.png)
+<p style="text-align:center; color:orange">图11：subscriber_member_function代码差异</p>
+下面是修改总结：
+1. std_msgs/msg/string.hpp 替换为 tutorial_interfaces/msg/num.hpp
+2. create_subscription的模板由<std_msgs::msg::String>改为<tutorial_interfaces::msg::Num>。
+3. 回调的消息有String变成了Num。RCLCPP_INFO函数被更改为了RCLCPP_INFO_STREAM。
+
+因为依赖项由之前的std_msgs变成了tutorial_interfaces。所以CMakeLists.txt和package.xml也需要修改。请按照入门教程修改，这里不再赘述。基本上是将std_msgs替换为tutorial_interfaces。或者添加tutorial_interfaces依赖。因为tutorial_interfaces本质是依赖于std_msgs的。
+```bash
+$ rosdep install -i --from-paths src/cpp_pubsub  --rosdistro humble -y
+ERROR: the following packages/stacks could not have their rosdep keys resolved
+to system dependencies:
+cpp_pubsub: Cannot locate rosdep definition for [tutorial_interfaces]
+```
+<font color='red'>怎么报错了呐？</font>
+
+原来我还没有source当前的overlay。（因为别的原因我关闭了之前的终端。）而我们当前需要编译的源码依赖于tutorial_interfaces，所以我们必须先将tutorial_interfaces配置到当前的环境中才可以。所以我们重来一次：
+```bash
+$ source install/setup.sh
+$ rosdep install -i --from-paths src/cpp_pubsub  --rosdistro humble -y
+#All required rosdeps installed successfully
+$ colcon build --packages-select cpp_pubsub
+Starting >>> cpp_pubsub
+Finished <<< cpp_pubsub [5.84s]                     
+
+Summary: 1 package finished [6.46s]
+## 我们新增加了包到环境中，所以现在需要重新source一次overlay
+$ source install/setup.sh
+## 检查一下cpp_pubsub是否加载成功
+$ ros2 pkg executables cpp_pubsub
+cpp_pubsub listener
+cpp_pubsub talker
+$ ros2 run cpp_pubsub listener
+```
+现在我们打开第二个终端（如果你也像我一样使用tmux,那这时候你可以将现在的终端分成两个窗口来避免在新打开的终端里面重新切换到目标目录并source）：
+```bash
+## 先cd到本节课程的工作空间
+## 然后source
+$ source install/setup.sh
+$ ros2 run cpp_pubsub talker
+```
+结果如下：
+![cpp_pubsub使用Num传递消息测试](img/cpp_pubsub_num_msg_test.gif)
+<p style="text-align:center; color:orange">图12：cpp_pubsub使用Num传递消息测试</p>
+
+#### 2.8.4 py_pubsub使用tutorial_interfaces/msg/Num消息接口
+这一节我们下来使用py_pubsub来测试Num.msg接口。
+
+按照入门教程改动即可，还是修改头文件并将std_msgs/msg/String更改为tutorial_interfaces/msg/Num。这里就不再赘述。
+
+ament_python的修改比较简单，仅修改package.xml文件即可。只需要中的`exec_depend`标签内的`std_msgs`更改为`tutorial_interfaces`即可。
+
+然后按照之前的流程编译即可：
+```bash
+$ source install/setup.sh
+$ rosdep install -i --from-paths src/py_pubsub  --rosdistro humble -y
+#All required rosdeps installed successfully
+$ colcon build --packages-select  py_pubsub
+```
+然后在这个窗口运行lisenter：
+```bash
+$ source install/setup.sh
+## 检查一下py_pubsub是否加载成功
+$ ros2 pkg executables py_pubsub
+py_pubsub listener
+py_pubsub talker
+$ ros2 run py_pubsub listener
+```
+在另一个终端运行talker：
+```bash
+$ source install/setup.sh
+$ ros2 run py_pubsub talker
+```
+运行结果和2.8.3节一样。不再赘述。
+
+#### 2.8.5 cpp_srvcli使用tutorial_interfaces/srv/AddThreeInts服务接口
+cpp_srvcli之前的两个源文件是`add_two_ints_server.cpp`和`add_two_ints_client.cpp`。为了名副其实我们将它们分别更名为`add_three_ints_server.cpp`和`add_three_ints_client.cpp`。
+
+在add_two_ints_server.cpp中使用的是`example_interfaces::srv::AddTwoInts`，而我们这次使用的是`tutorial_interfaces/srv/AddThreeInts`服务接口。所以要做相应的替换，而之前request的数据也在a和b之外添加了c.<font color=yellow>当然头文件也要相应修改，但是请注意头文件的basename变成了全小写。</font>我们就按照这个原则修改add_three_ints_server.cpp文件。同样的方法用到add_three_ints_client.cpp的修改中。只是请注意这次argc变成了4.
+
+CMakeLists.txt文件除了依赖项要从`example_interfaces`改为`tutorial_interfaces`之外，还要更改目标文件的名字。（入门教程没有更改文件名称）
+
+package.xml只需要将依赖项从`example_interfaces`改为`tutorial_interfaces`即可。
+
+然后编译：
+```bash
+$ source install/setup.sh
+$ rosdep install -i --from-paths src/cpp_srvcli  --rosdistro humble -y
+#All required rosdeps installed successfully
+$ colcon build --packages-select cpp_srvcli
+Starting >>> cpp_srvcli
+Finished <<< cpp_srvcli [2.12s]                     
+
+Summary: 1 package finished [2.75s]
+## 我们新增加了包到环境中，所以现在需要重新source一次overlay
+$ source install/setup.sh
+## 检查一下cpp_srvcli是否加载成功
+$ ros2 pkg executables cpp_srvcli
+cpp_srvcli client
+cpp_srvcli server
+$ ros2 run cpp_srvcli client 11 22 33
+```
+在另一个终端延迟打开server：
+```bash
+$ source install/setup.sh
+$ ros2 run cpp_srvcli server
+```
+
+测试结果如下：
+![AddThreeInts传递服务消息测试](img/cpp_srvcli_add_three_ints_test.gif)
+<p style="text-align:center; color:orange">图13：AddThreeInts传递服务消息测试</p>
+
+#### 2.8.6 py_srvcli使用tutorial_interfaces/srv/AddThreeInts服务接口
+py_srvcli的测试和cpp_srvcli大同小异（程序更简单）。细节不再赘述。参见入门教程即可。
+
+然后编译：
+```bash
+$ source install/setup.sh
+$ rosdep install -i --from-paths src/py_srvcli  --rosdistro humble -y
+#All required rosdeps installed successfully
+$ colcon build --packages-select py_srvcli
+Starting >>> py_srvcli
+--- stderr: py_srvcli                   
+/home/galileo/.local/lib/python3.10/site-packages/setuptools/_distutils/cmd.py:66: SetuptoolsDeprecationWarning: setup.py install is deprecated.
+!!
+
+        ********************************************************************************
+        Please avoid running ``setup.py`` directly.
+        Instead, use pypa/build, pypa/installer or other
+        standards-based tools.
+
+        See https://blog.ganssle.io/articles/2021/10/setup-py-deprecated.html for details.
+        ********************************************************************************
+
+!!
+  self.initialize_options()
+---
+Finished <<< py_srvcli [0.84s]
+
+Summary: 1 package finished [1.46s]
+  1 package had stderr output: py_srvcli
+## 我们新增加了包到环境中，所以现在需要重新source一次overlay
+$ source install/setup.sh
+## 检查一下py_srvcli是否加载成功
+$ ros2 pkg executables py_srvcli
+py_srvcli client
+py_srvcli service
+$ ros2 run py_srvcli client 11 22 33
+```
+在另一个终端延迟打开server：
+```bash
+$ source install/setup.sh
+$ ros2 run py_srvcli service
+```
+测试完成。
+
+#### 2.8.7 总结
+2.8节学会了怎么使用自定义的srv,msg接口。我们也初步接触了rosidl.未来将继续研究ros2的API.
+
+### 2.9 实现自定义接口
 
 
 ## 三、ROS API
