@@ -1991,6 +1991,239 @@ $ ros2 run py_srvcli service
 2.8节学会了怎么使用自定义的srv,msg接口。我们也初步接触了rosidl.未来将继续研究ros2的API.
 
 ### 2.9 实现自定义接口
+本小节参照入门教程[Implementing custom interfaces](https://docs.ros.org/en/humble/Tutorials/Beginner-Client-Libraries/Single-Package-Define-And-Use-Interface.html)的内容。
+
+在上一节我们使用了专门的包来创建接口。这是ROS官方推荐的做法，但是你也看到整个过程比较繁琐。你需要先准备好接口并将其当作被使用接口的underlay才能够支持后者编译和运行。那有没有简单的做法。本章就描述了这种方法。
+
+因为接口文件只能在ament_cmake中编译，所以如果你当你需要访问包内自定义接口的时候，你的工程必须是ament_cmake。如果你必须使用python,那有两种方法：一种是做成独立的包，另一种将python封装成可供cpp使用的库。为简单期间，入门教程介绍了在ament_cmake包内使用自定义接口的办法。
+
+#### 2.9.1 实现基础接口
+
+本节教程我们还在custom_if_ws工作区中操作。我们首先创建一个名称为more_interfaces，类型是ament_cmake的包：
+```bash
+## 确保已经cd到了custom_if_ws目录中
+$ ros2 pkg create more_interfaces --build-type ament_cmake --license Apache-2.0 --destination-directory src/ --description "A package with custom interfaces"
+$ ls src/
+cpp_pubsub  cpp_srvcli  more_interfaces  py_pubsub  py_srvcli  tutorial_interfaces
+## 照例创建一个msg文件夹用来存放消息接口描述文件
+$ mkdir src/more_interfaces/msg
+## 我们顺便打开vscode
+
+```
+现在我们将要创建一个名为AddressBook.msg的消息描述文件，内容如下：
+```txt
+uint8 PHONE_TYPE_HOME=0
+uint8 PHONE_TYPE_WORK=1
+uint8 PHONE_TYPE_MOBILE=2
+
+string first_name
+string last_name
+string phone_number
+uint8 phone_type
+```
+这个文件相比于2.8中的定义稍微复杂了一点。前三行定义了三个常量。后面定义了三个string类型的变量分别表示姓、名、手机号。然后定义了一个uint8_t类型的变量表示手机类型。只是三个常量看起来表示phone_type。但是具体将这几个常量制定给phone_type这个变量，我尚不清楚。在之前[Baisc/Interface](https://docs.ros.org/en/humble/Concepts/Basic/About-Interfaces.html)的篇幅讲了接口定义的内容。只是因为当时对接口还不太理解。还不知道原来接口的作用这么大。（之前不知道接口可以自定义。）
+
+我们照例要修改依赖项，在2.8节已经描述过了（rosidl的编译、运行相关的依赖项）。在package.xml中添加：
+```txt
+<buildtool_depend>rosidl_default_generators</buildtool_depend>
+
+<exec_depend>rosidl_default_runtime</exec_depend>
+
+<member_of_group>rosidl_interface_packages</member_of_group>
+```
+
+在CMakeLists.txt中添加：
+```txt
+find_package(rosidl_default_generators REQUIRED)
+
+
+rosidl_generate_interfaces(${PROJECT_NAME}
+  "msg/AddressBook.msg"
+)
+```
+
+此外还需要额外添加一条（相比于2.8节）：
+```txt
+$ rosdep install -i --from-paths src/more_interfaces/  --rosdistro humble -y
+#All required rosdeps installed successfully
+$ colcon build --packages-select more_interfaces
+Starting >>> more_interfaces
+Finished <<< more_interfaces [2.25s]                     
+
+Summary: 1 package finished [2.86s]
+```
+
+有意思的是上文CMakeLists.txt其实可以这样编写：
+```txt
+find_package(rosidl_default_generators REQUIRED)
+
+set(msg_files
+  "msg/AddressBook.msg"
+)
+
+rosidl_generate_interfaces(${PROJECT_NAME}
+  $(msg_files)
+)
+```
+我们甚至可以将上面的文件扩展为一种常规结构：
+
+
+```txt
+find_package(rosidl_default_generators REQUIRED)
+
+set(msg_files
+  "msg/AddressBook.msg"
+)
+
+set(srv_files
+  "srv/Service#.src"
+)
+
+set(action_files
+  "action/Action#.src"
+)
+
+rosidl_generate_interfaces(${PROJECT_NAME}
+  $(msg_files)
+  $(srv_files)
+  $(action_files)
+)
+
+```
+[上文是举例，你需要根据你世纪的文件来扩展上述语法。]
+
+然后执行依赖项检查和编译工作。最后我们开测试一下接口：
+```bash
+$ source install/setup.bash
+$ ros2 interface list | grep more
+    more_interfaces/msg/AddressBook
+$ ros2 interface show more_interfaces/msg/AddressBook
+uint8 PHONE_TYPE_HOME=0
+uint8 PHONE_TYPE_WORK=1
+uint8 PHONE_TYPE_MOBILE=2
+
+string first_name
+string last_name
+string phone_number
+uint8 phone_type
+```
+
+#### 2.9.2 创建使用接口的代码
+现在我们来创建使用我们在2.9.1中创建的AddressBook消息接口。
+
+我们先创建一个文件名字叫做publish_address_book.cpp，内容如下：
+```cpp
+#include <chrono>
+#include <memory>
+
+#include "rclcpp/rclcpp.hpp"
+#include "more_interfaces/msg/address_book.hpp"
+
+using namespace std::chrono_literals;
+
+class AddressBookPublisher : public rclcpp::Node
+{
+public:
+  AddressBookPublisher()
+  : Node("address_book_publisher")
+  {
+    address_book_publisher_ =
+      this->create_publisher<more_interfaces::msg::AddressBook>("address_book", 10);
+
+    auto publish_msg = [this]() -> void {
+        auto message = more_interfaces::msg::AddressBook();
+
+        message.first_name = "John";
+        message.last_name = "Doe";
+        message.phone_number = "1234567890";
+        message.phone_type = message.PHONE_TYPE_MOBILE;
+
+        std::cout << "Publishing Contact\nFirst:" << message.first_name <<
+          "  Last:" << message.last_name << std::endl;
+
+        this->address_book_publisher_->publish(message);
+      };
+    timer_ = this->create_wall_timer(1s, publish_msg);
+  }
+
+private:
+  rclcpp::Publisher<more_interfaces::msg::AddressBook>::SharedPtr address_book_publisher_;
+  rclcpp::TimerBase::SharedPtr timer_;
+};
+
+
+int main(int argc, char * argv[])
+{
+  rclcpp::init(argc, argv);
+  rclcpp::spin(std::make_shared<AddressBookPublisher>());
+  rclcpp::shutdown();
+
+  return 0;
+}
+```
+我们再来分析一下上面的代码。头文件部分照例引用了`rclcpp`接口，然后使用我们方才自定义的`more_interfaces/msg/AddressBook`消息接口的头文件`more_interfaces/msg/address_book.hpp`。
+
+整个程序的流程还是先初始化（init），然后循环调用（spin）自定义的类AddressBookPublisher的成员（使用std::make_shared创建类的实体），最后从循环中跳出后关闭（shutdown）程序。
+
+AddressBookPublisher的构建程序中，先使用create_publisher创建一个名叫address_book_publisher_的发布者（重载类型为more_interfaces::msg::AddressBook）。然后使用Lambda表达式创建一个消息发布者publish_msg。publish_msg函数中，先创建一个AddressBook类型的消息，然后设置相关的字段，然后打印相关信息，最后使用address_book_publisher_的publish函数发布消息。最后使用create_wall_timer创建一个名为timer_的定时器按照1s的周期调用publish_msg函数发布消息。
+
+我们不妨先编译一下publisher的代码。现在需要根据将新增的依赖项`rclcpp`添加到package.xml和CMakeLists.txt文件中。在package.xml中添加：
+```txt
+<depend>rclcpp</depend>
+```
+在CMakeLists.txt文件中添加：
+```txt
+find_package(rclcpp REQUIRED)
+
+add_executable(publish_address_book src/publish_address_book.cpp)
+ament_target_dependencies(publish_address_book rclcpp)
+
+install(TARGETS
+    publish_address_book
+  DESTINATION lib/${PROJECT_NAME})
+```
+除了这些常规代码，还需要添加：
+```txt
+rosidl_get_typesupport_target(cpp_typesupport_target
+  ${PROJECT_NAME} rosidl_typesupport_cpp)
+
+target_link_libraries(publish_address_book "${cpp_typesupport_target}")
+```
+这些代码将告诉编译期要从相同的节点寻找自定义接口。<font color=red>这段代码也是区别与从其它package加载的最主要区别。请多加注意。</font>
+
+我们现在再次检查依赖项并编译。
+```bash
+$ rosdep install -i --from-paths src/more_interfaces/ --rosdistro humble -y
+#All required rosdeps installed successfully
+$ colcon build --packages-select more_interfaces
+Starting >>> more_interfaces
+Finished <<< more_interfaces [3.69s]                     
+
+Summary: 1 package finished [4.31s]
+```
+现在我们来测试它。我们将用`ros2 topic echo`来查看我们的发布的消息。之后真实代码的编写中也可以用这种方式调试Topic代码。
+在一个终端调用publish_address_book去发布消息：
+```bash
+$ source install/setup.bash
+$ ros2 run more_interfaces publish_address_book
+```
+在另一个终端调用`ros2 topic echo`来查看发布的消息：
+```bash
+$ source install/setup.bash
+$ ros2 topic echo /address_book
+```
+需要注意如果我们在这个终端中不source的话，尽管我们可以通过`ros2 topic list`发现/address_book这个topic，但是我们无法查看发布的消息：
+```bash
+$ ros2 topic echo /address_book
+The message type 'more_interfaces/msg/AddressBook' is invalid
+```
+所以必须事先source.
+
+结果如下：
+![AddressBook消息接口测试](img/address_book_test.gif)
+<p style="text-align:center; color:orange">图14：AddressBook消息接口测试</p>
+
+
 
 
 ## 三、ROS API
@@ -2042,3 +2275,5 @@ C++和ROS2语法相关：
 * [rclcpp](https://docs.ros2.org/latest/api/rclcpp/)
 * [rclcpp Repository](https://github.com/ros2/rclcpp)
 * [std_msgs Repository](https://github.com/ros2/common_interfaces/tree/humble/std_msgs)
+* [c++ lambda表达式](https://learn.microsoft.com/zh-cn/cpp/cpp/lambda-expressions-in-cpp?view=msvc-170)
+* [Modern C++](https://learn.microsoft.com/zh-cn/cpp/cpp/welcome-back-to-cpp-modern-cpp?view=msvc-170)
