@@ -2223,6 +2223,21 @@ The message type 'more_interfaces/msg/AddressBook' is invalid
 ![AddressBook消息接口测试](img/address_book_test.gif)
 <p style="text-align:center; color:orange">图14：AddressBook消息接口测试</p>
 
+#### 2.9.3 使用已存在的接口定义
+入门教程的这一部分假定我们在自己的msg文件里面包含了其它包的相应文件。文中举的例子是名字叫做`rosidl_tutorials_msgs`的包。这个包实际上是不存在。它举出的例子我们在定义Sphere.msg的时候已经用过了。Sphere.msg的定义如下：
+```txt
+geometry_msgs/Point center
+float64 radius
+```
+其中geometry_msgs/Point就是存在的另一个包。具体的流程可以参考这部分（2.8.2）即可。
+
+我们在定义这个包的时候也在package.xml和CMakeLists.txt中添加了依赖项`geometry_msgs`。只是那个包中间没有引用`geometry_msgs/msg/point.hpp`文件.因为尽管这个Sphere这个消息体尽管被定义了。但是最终没有被使用。
+
+#### 2.9.4 总结
+这一节我们继续深入的了解了如何在同一个package使用自定义的interface.但是这并不是官方推荐的一种方式。尤其是如果在python包中使用则会非常繁琐。（与其这样不如为你的工程专门制作制作一个基础的接口package.将你会用到的特殊接口全部定义在其中。这样可以方便管理和使用。）
+
+### 2.10 在C++类中使用参数(Parameters)
+本小节参照入门教程[Using parameters in a class](https://docs.ros.org/en/humble/Tutorials/Beginner-Client-Libraries/Using-Parameters-In-A-Class-CPP.html)的内容。
 
 
 
@@ -2237,6 +2252,7 @@ The message type 'more_interfaces/msg/AddressBook' is invalid
 
 
 ### 3.1
+
 
 ## 四、Y
 ## 五、Z
@@ -2263,6 +2279,8 @@ Jetson相关：
 * [About-Internal-Interfaces](https://docs.ros.org/en/rolling/Concepts/Advanced/About-Internal-Interfaces.html)
 * [IDL](https://www.omg.org/spec/IDL/)
 * [IDL Mapping](https://design.ros2.org/articles/idl_interface_definition.html)
+* [Interface Design](https://design.ros2.org/articles/interface_definition.html)
+
 
 Linux相关：
 * [Tmux使用教程](https://www.ruanyifeng.com/blog/2019/10/tmux.html)
