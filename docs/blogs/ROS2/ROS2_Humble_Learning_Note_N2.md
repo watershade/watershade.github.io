@@ -932,7 +932,7 @@ int main(int argc, char * argv[])
   return 0;
 }
 ```
-可以大体理解先初始化，然后循环执行MinimalPublisher这个类的构建函数，最后关闭。所以再来看一下MinimalPublisher这个类。
+可以大体理解先初始化，然后循环执行MinimalPublisher这个类的构造函数，最后关闭。所以再来看一下MinimalPublisher这个类。
 
 ```c++
 class MinimalPublisher : public rclcpp::Node
@@ -1073,6 +1073,9 @@ $ ros2 run cpp_pubsub talker
 
 #### 2.4.4 总结
 这一章节使用了入门教程提供的示例代码来测试两个node之间通过topic进行通讯。代码尽管不复杂，但是有很多地方需要详细了解才行。另外代码使用了modern c++。看起来后面还要更新自己的modern c++知识。
+
+在这一节我们了解到了rclcpp中的Node::create_publisher和Node::create_subscription这两个函数。这两个函数可以用来创建发布者和订阅者。此外我们还学会使用rclcpp中的Node::create_wall_timer函数来创建定时器。
+
 
 ### 2.5 尝试编写ament_python包
 本小节参照入门教程[Writing a simple publisher and subscriber (Python)](https://docs.ros.org/en/humble/Tutorials/Beginner-Client-Libraries/Writing-A-Simple-Py-Publisher-And-Subscriber.html)的内容。这一部分的功能和2.4节的基本一致，只是代码是用python编写的。
@@ -1241,6 +1244,9 @@ $ ros2 run py_pubsub talker
 
 #### 2.5.2 总结
 这一章节使用了入门教程提供的示例代码来测试两个node之间通过topic进行通讯。代码尽管不复杂，但是有很多地方需要详细了解才行。
+
+在这一节我们了解到了rclpy中的Node::create_publisher和Node::create_subscription这两个函数。这两个函数可以用来创建发布者和订阅者。此外我们还学会使用rclpy中的Node::create_timer函数来创建定时器。
+
 
 ### 2.6 使用c++编写ROS2的server和client
 本小节参照入门教程[Writing a simple service and client (C++)](https://docs.ros.org/en/humble/Tutorials/Beginner-Client-Libraries/Writing-A-Simple-Cpp-Service-And-Client.html)的内容。这一部分主要演示了ROS2的service怎么使用。在这一章你会发现请求和响应的结构由`.srv`文件决定。
@@ -1420,6 +1426,8 @@ $ ros2 run cpp_srvcli service
 
 #### 2.6.5 总结
 本章我们学习了ROS2的service的使用，并编写了server和client程序。可以看出这部分的程序还是非常复杂的。至于srv我们本次使用了外部的srv,后面我们还需要学习自己编写srv文件和服务器和客户端的类的编写。
+
+在这一节我们了解到了rclcpp中的Node::create_service创建服务器和使用Node::create_client创建客户端;也学会使用wait_for_service去等待服务器的可用性；也学会使用async_send_request函数去异步发送请求。
 
 ### 2.7 使用python编写ROS2的server和client
 本小节参照入门教程[Writing a simple service and client (Python)](https://docs.ros.org/en/humble/Tutorials/Beginner-Client-Libraries/Writing-A-Simple-Py-Service-And-Client.htm)的内容。这一部分功能和上一小节基本一致，只是语言变成了python.
@@ -1604,6 +1612,8 @@ $ ros2 run py_srvcli service
 
 #### 2.7.6 总结
 相比于2.6,可以发现2.7中的python程序本身更加简洁。流程大同小异。setup.py和CMakeLists.txt文件在配置execute point上有相同的作用。
+
+在这一节我们了解到了rclpy中的Node::create_service创建服务器和使用Node::create_client创建客户端;也学会使用wait_for_service去等待服务器的可用性；也学会使用spin_until_future_complete函数去等待任务完成。
 
 ### 2.8 编写定制化的msg和srv文件
 本小节参照入门教程[Creating custom msg and srv files](https://docs.ros.org/en/humble/Tutorials/Beginner-Client-Libraries/Custom-ROS2-Interfaces.html)的内容。
@@ -2239,6 +2249,163 @@ float64 radius
 ### 2.10 在C++类中使用参数(Parameters)
 本小节参照入门教程[Using parameters in a class](https://docs.ros.org/en/humble/Tutorials/Beginner-Client-Libraries/Using-Parameters-In-A-Class-CPP.html)的内容。
 
+我们在[笔记1](https://watershade.github.io/ROS2/ROS2_Humble_Learning_Note_1)中
+本节将学习如何在C++类中使用parameters。在开始之前我们不妨先建立一个基本的工程，随后再一步一步了解怎么在被工程中引用parameters，最后学会在launch中设置参数。
+
+#### 2.10.1 准备工作-创建基础工程
+先创建一个`demo7_ws`工作区，然后创建一个`cpp_parameters`包。这个包的是ament_cmake类型;名字不妨叫做`cpp_parameters`；依赖项是`rclcpp`;license照例是Apache-2.0：
+```bash
+$ mkdir -p demo7_ws/src
+$ cd demo7_ws
+$ ros2 pkg create cpp_parameters --destination-directory src/ --build-type ament_cmake  --license Apache-2.0  --dependencies rclcpp  --description "C++ parameter tutorial"
+$ tree  src/cpp_parameters/
+src/cpp_parameters/
+├── CMakeLists.txt
+├── include
+│   └── cpp_parameters
+├── LICENSE
+├── package.xml
+└── src
+
+3 directories, 3 files
+$ code src/cpp_parameters
+```
+我了后面使用parameter,我们需要在即将编写的代码中包含一些pkg相关的参数。我们可以按照入门教程的代码，创建一个cpp_parameters_node.cpp文件，并填入代码：
+```cpp
+#include <chrono>
+#include <functional>
+#include <string>
+
+#include <rclcpp/rclcpp.hpp>
+
+using namespace std::chrono_literals;
+
+class MinimalParam : public rclcpp::Node
+{
+public:
+  MinimalParam()
+  : Node("minimal_param_node")
+  {
+    this->declare_parameter("my_parameter", "world");
+
+    timer_ = this->create_wall_timer(
+      1000ms, std::bind(&MinimalParam::timer_callback, this));
+  }
+
+  void timer_callback()
+  {
+    std::string my_param = this->get_parameter("my_parameter").as_string();
+
+    RCLCPP_INFO(this->get_logger(), "Hello %s!", my_param.c_str());
+
+    std::vector<rclcpp::Parameter> all_new_parameters{rclcpp::Parameter("my_parameter", "world")};
+    this->set_parameters(all_new_parameters);
+  }
+
+private:
+  rclcpp::TimerBase::SharedPtr timer_;
+};
+
+int main(int argc, char ** argv)
+{
+  rclcpp::init(argc, argv);
+  rclcpp::spin(std::make_shared<MinimalParam>());
+  rclcpp::shutdown();
+  return 0;
+}
+```
+上面的程序还是rclcpp传统的流程不再赘述，我们主要分析MinimalParam这个继承自Node的Class. 在MinimalParam的构造函数中使用Node::declare_parameter茶u年构建了一个key是"my_parameter"的参数，并为这个参数赋初值为“world”。然后创建一个定时器，每隔1s调用timer_callback函数。在timer_callback函数中，我们使用Node::get_parameter函数获取参数值，并打印出来。然后我们使用Node::set_parameters函数修改参数值。
+
+通过这操作可以将外部设置的参数显示出来，显示完之后有将参数值设为默认值。
+
+我们也可以在构造函数中添加参数描述符（param description），这样在使用`ros2 param list`命令时可以看到参数的描述。参数描述符（param description）除了能简单描述参数之外还可以给它添加一些限制，比如是否只读，参数范围等。这样我们相关的程序就可以修改为：
+```cpp
+// ...
+class MinimalParam : public rclcpp::Node
+{
+public:
+  MinimalParam()
+  : Node("minimal_param_node")
+  {
+    auto param_desc = rcl_interfaces::msg::ParameterDescriptor{};
+    param_desc.description = "This parameter is mine!";
+
+    this->declare_parameter("my_parameter", "world", param_desc);
+
+    timer_ = this->create_wall_timer(
+      1000ms, std::bind(&MinimalParam::timer_callback, this));
+  }
+ // ......
+} 
+```
+现在我们需要修改CMakeLists.txt文件，添加我们的目标文件。如下：
+```txt
+add_executable(minimal_param_node src/cpp_parameters_node.cpp)
+ament_target_dependencies(minimal_param_node rclcpp)
+
+install(TARGETS
+    minimal_param_node
+  DESTINATION lib/${PROJECT_NAME}
+)
+```
+然后我们检查依赖项并编译：
+```bash
+$ rosdep install -i --from-paths src/cpp_parameters/ --rosdistro humble -y
+#All required rosdeps installed successfully
+$ colcon build --packages-select cpp_parameters
+Starting >>> cpp_parameters
+Finished <<< cpp_parameters [3.63s]                     
+
+Summary: 1 package finished [4.28s]
+```
+最后我们source一下环境变量，并运行程序：
+```bash
+$ source install/setup.bash
+$ ros2 pkg list | grep cpp_parameters
+cpp_parameters
+$ ros2 run cpp_parameters minimal_param_node
+[INFO] [1706097049.922609500] [minimal_param_node]: Hello world!
+[INFO] [1706097050.922285795] [minimal_param_node]: Hello world!
+# ...
+```
+我们可以看到程序打印出了参数值。
+
+#### 2.10.2 从外部修改参数测试
+不要关闭上一个终端，我们打开一个新的终端窗口：
+```bash
+# cd到你的demo7_ws工作区，然后source环境变量
+$ source install/setup.bash 
+## cpp_parameters运行后方可参看参数
+$ ros2 param list
+/minimal_param_node:
+  my_parameter
+  qos_overrides./parameter_events.publisher.depth
+  qos_overrides./parameter_events.publisher.durability
+  qos_overrides./parameter_events.publisher.history
+  qos_overrides./parameter_events.publisher.reliability
+  use_sim_time
+## 获取节点名称，下一步需要  
+$ ros2 node list
+/minimal_param_node
+## 获取参数
+$ ros2 param get /minimal_param_node my_parameter
+String value is: world
+$ ros2 param set /minimal_param_node my_parameter earth/sky
+```
+测试如下：
+![外部设置参数测试](img/set_param_from_external.gif)
+<p style="text-align:center; color:orange">图15：外部设置参数测试</p>
+
+
+#### 2.10.3 从launch修改参数
+
+
+
+
+
+
+
+
 
 
 ## 三、ROS API
@@ -2280,6 +2447,7 @@ Jetson相关：
 * [IDL](https://www.omg.org/spec/IDL/)
 * [IDL Mapping](https://design.ros2.org/articles/idl_interface_definition.html)
 * [Interface Design](https://design.ros2.org/articles/interface_definition.html)
+* [Launch](https://docs.ros.org/en/humble/Tutorials/Intermediate/Launch/Launch-Main.html)
 
 
 Linux相关：
