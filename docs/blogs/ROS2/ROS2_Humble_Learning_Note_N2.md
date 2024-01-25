@@ -2396,6 +2396,16 @@ $ ros2 param set /minimal_param_node my_parameter earth/sky
 ![外部设置参数测试](img/set_param_from_external.gif)
 <p style="text-align:center; color:orange">图15：外部设置参数测试</p>
 
+对了别忘了使用`ros2 param describe`命令来查看参数的描述：
+```bash
+$ ros2 param describe  minimal_param_node my_parameter
+Parameter name: my_parameter
+  Type: string
+  Description: This parameter is mine!
+  Constraints:
+```
+请注意要确保当节点运行后才能使用上面的命令查看参数。
+
 
 #### 2.10.3 从launch修改参数
 通过param修改参数是一种临时修改，如果需要长期修改，则需要修改launch文件。我们可以修改launch文件，使得参数可以在launch文件中设置。
@@ -2471,6 +2481,270 @@ $ ros2 launch cpp_parameters cpp_parameters_launch.py
 [minimal_param_node-1] [INFO] [1706156599.930544611] [custom_minimal_param_node]: Hello world!
 ```
 
+### 2.11 在Python类中使用参数(Parameters)
+本小节参照入门教程[Using parameters in a class (Python)](https://docs.ros.org/en/humble/Tutorials/Beginner-Client-Libraries/Using-Parameters-In-A-Class-Python.html#using-parameters-in-a-class-python)的内容。
+
+#### 2.11.1 创建基础包
+
+我们在2.10中介绍了在C++中使用参数，这一节我们介绍在python中怎么使用paramters.我们先来准备一个包含paramter的python package吧。本次我们将创建一个名字叫`demo8_ws`的新工作区，并创建一个叫做python_parameters的ament_python类型的package：
+```bash
+$ mkdir -p demo8_ws/src
+$ cd demo8_ws
+$ ros2 pkg create python_parameters --destination-directory src/ --build-type ament_python  --license Apache-2.0  --dependencies rclpy  --description "Python parameter tutorial"
+$ tree pkg src/python_parameters/
+pkg  [error opening dir]
+src/python_parameters/
+├── LICENSE
+├── package.xml
+├── python_parameters
+│   └── __init__.py
+├── resource
+│   └── python_parameters
+├── setup.cfg
+├── setup.py
+└── test
+    ├── test_copyright.py
+    ├── test_flake8.py
+    └── test_pep257.py
+
+3 directories, 9 files
+
+## 接着我们照例打开vsode来编辑工程
+$ code src/python_parameters
+```
+
+我们在`python_parameters`包中创建一个`python_parameters_node.py`源文件，内容如下：
+```python
+import rclpy
+import rclpy.node
+from rcl_interfaces.msg import ParameterDescriptor
+
+class MinimalParam(rclpy.node.Node):
+    def __init__(self):
+        super().__init__('minimal_param_node')
+
+        my_parameter_descriptor = ParameterDescriptor(description='This parameter is mine!')
+
+        self.declare_parameter('my_parameter', 'world', my_parameter_descriptor)
+
+        self.timer = self.create_timer(1, self.timer_callback)
+
+    def timer_callback(self):
+        my_param = self.get_parameter('my_parameter').get_parameter_value().string_value
+
+        self.get_logger().info('Hello %s!' % my_param)
+
+        my_new_param = rclpy.parameter.Parameter(
+            'my_parameter',
+            rclpy.Parameter.Type.STRING,
+            'world'
+        )
+        all_new_parameters = [my_new_param]
+        self.set_parameters(all_new_parameters)
+
+def main():
+    rclpy.init()
+    node = MinimalParam()
+    rclpy.spin(node)
+    node.destroy_node()
+    rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()
+```    
+在代码main函数中照例初始化创建一个MinimalParam类型的节点，然后循环执行节点，当从spin退出之后销毁节点并关闭ROS2。我们主要将一下MinimalParam。
+
+MinimalParam的初始化（类似构造函数）函数中创建了一个名为`minimal_param_node`的节点并创建了一个ParameterDescriptor，然后使用`declare_parameter`创建一个key是`my_parameter`的参数，并为这个参数赋初值为“world”。然后创建一个定时器，每隔1s调用timer_callback函数。
+
+在timer_callback函数中，先使用`get_parameter`获取参数值，并打印出来。然后我们使用`set_parameters`函数将参数值复原为“world”。
+
+现在我们需要将这个文件添加进编译目标，让我们修改setup.py文件，修改entry_points为：
+```python
+entry_points={
+    'console_scripts': [
+        'minimal_param_node = python_parameters.python_parameters_node:main',
+    ],
+},
+```
+
+接着检查并编译：
+```bash
+$ rosdep install -i --from-path src/python_parameters/ --rosdistro humble -y
+All required rosdeps installed successfully
+$ colcon build --packages-select python_parameters
+Starting >>> python_parameters
+--- stderr: python_parameters                   
+/home/galileo/.local/lib/python3.10/site-packages/setuptools/_distutils/cmd.py:66: SetuptoolsDeprecationWarning: setup.py install is deprecated.
+!!
+
+        ********************************************************************************
+        Please avoid running ``setup.py`` directly.
+        Instead, use pypa/build, pypa/installer or other
+        standards-based tools.
+
+        See https://blog.ganssle.io/articles/2021/10/setup-py-deprecated.html for details.
+        ********************************************************************************
+
+!!
+  self.initialize_options()
+---
+Finished <<< python_parameters [0.90s]
+
+Summary: 1 package finished [1.50s]
+  1 package had stderr output: python_parameters
+```
+
+编译成功后，我们可以运行这个节点：
+```bash
+$ source install/setup.bash
+$ ros2 run python_parameters minimal_param_node
+[INFO] [1706159642.638704504] [minimal_param_node]: Hello world!
+[INFO] [1706159643.631924780] [minimal_param_node]: Hello world!
+[INFO] [1706159644.631876017] [minimal_param_node]: Hello world!
+
+# ...
+```
+
+#### 2.11.2 在终端中修改参数
+
+不要关闭正在运行minimal_param_node的终端，我们新打开一个终端。在新的终端中可以枚举当前可用的param：
+```bash
+$ ros2 param list
+/minimal_param_node:                                                  
+  my_parameter                                                        
+  use_sim_time    
+```
+也可以查看描述符：
+```bash
+## 不妨先查看一下节点
+$ ros2 node list
+/minimal_param_node
+## 查看参数描述符
+$ ros2 param describe /minimal_param_node my_parameter
+Parameter name: my_parameter
+  Type: string
+  Description: This parameter is mine!
+  Constraints:
+## 查看当前的参数设置
+$ ros2 param get /minimal_param_node my_parameter  
+String value is: world
+```
+现在我们看一下当我们修改参数是，正在运行的节点输出信息有何变化
+```bash
+$ ros2 param set /minimal_param_node my_parameter moon
+```
+这时候我正在输出的信息由`Hello World！`变成了`Hello Moon！`：
+```txt
+[INFO] [1706161965.181400961] [minimal_param_node]: Hello world!
+[INFO] [1706161966.180624814] [minimal_param_node]: Hello moon!
+[INFO] [1706161967.180764113] [minimal_param_node]: Hello world!
+```
+
+#### 2.11.3 在launch file中修改参数
+现在我们创建一个launch file文件放在package下的launch目录中，名称叫做`python_parameters_launch.py`，内容如下：
+```python
+from launch import LaunchDescription
+from launch_ros.actions import Node
+
+def generate_launch_description():
+    return LaunchDescription([
+        Node(
+            package='python_parameters',
+            executable='minimal_param_node',
+            name='custom_minimal_param_node',
+            output='screen',
+            emulate_tty=True,
+            parameters=[
+                {'my_parameter': 'earth'}
+            ]
+        )
+    ])
+```
+上面的代码和我们在2.10.3并无本质区别。
+
+与2.10.3不同的是我们这次需要修改setup.py文件（而不是CMakeLists.txt），添加launch文件的路径：
+```python
+import os
+from glob import glob
+# ...
+
+setup(
+  # ...
+  data_files=[
+      # ...
+      (os.path.join('share', package_name), glob('launch/*launch.[pxy][yma]*')),
+    ]
+  )
+```
+上文只要是在data_files中添加一个条目，用来添加launch文件的路径。
+
+然后来是编译测试：
+```bash
+$ rosdep install -i --from-path src/python_parameters/ --rosdistro humble -y
+#All required rosdeps installed successfully
+$ colcon build  --packages-select python_parameters 
+Starting >>> python_parameters
+--- stderr: python_parameters                   
+/home/galileo/.local/lib/python3.10/site-packages/setuptools/_distutils/cmd.py:66: SetuptoolsDeprecationWarning: setup.py install is deprecated.
+!!
+
+        ********************************************************************************
+        Please avoid running ``setup.py`` directly.
+        Instead, use pypa/build, pypa/installer or other
+        standards-based tools.
+
+        See https://blog.ganssle.io/articles/2021/10/setup-py-deprecated.html for details.
+        ********************************************************************************
+
+!!
+  self.initialize_options()
+---
+Finished <<< python_parameters [0.82s]
+
+Summary: 1 package finished [1.43s]
+  1 package had stderr output: python_parameters
+```
+
+在这个终端中source环境，然后运行launch一下刚才`python_parameters_launch.py`：
+```bash
+$ source install/setup.bash
+$ ros2 launch python_parameters python_parameters_launch.py
+[INFO] [launch]: All log files can be found below /home/galileo/.ros/log/2024-01-25-14-35-21-049774-Galileo-Dell-Linux-28706
+[INFO] [launch]: Default logging verbosity is set to INFO
+[INFO] [minimal_param_node-1]: process started with pid [28707]
+[minimal_param_node-1] [INFO] [1706164522.213285310] [custom_minimal_param_node]: Hello earth!
+[minimal_param_node-1] [INFO] [1706164523.206513830] [custom_minimal_param_node]: Hello world!
+[minimal_param_node-1] [INFO] [1706164524.206772311] [custom_minimal_param_node]: Hello world!
+[minimal_param_node-1] [INFO] [1706164525.206759469] [custom_minimal_param_node]: Hello world!
+```
+
+#### 2.11.4 总结
+这样我们就完成了在C++和Python中使用参数的教程。我们可以看到，在C++和Python中使用参数，我们需要在节点初始化的时候声明参数，并在回调函数中获取参数值。在launch文件中修改参数，我们需要在launch文件中声明参数，并在节点初始化的时候设置参数。
+
+另外有一点注意事项，在编写launch file的时候要确保参数名称和类型匹配，节点和可执行程序的名称要正确。否则可能会出错。
+
+
+### 2.12 使用`ros2doctor`识别错误
+ 本小节参照入门教程[Using ros2doctor to identify issues](https://docs.ros.org/en/humble/Tutorials/Beginner-Client-Libraries/Getting-Started-With-Ros2doctor.html)的内容。
+
+我们在笔记1中简单描述过`ros2 doctor`可以排查故障。这个命令的底层使用的工具就是`ros2doctor`.它可以检查ROS2的各个方面，包括平台、版本、网络、环境、运行系统等，并警告您可能的错误和问题原因。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ## 三、ROS API
@@ -2480,11 +2754,6 @@ $ ros2 launch cpp_parameters cpp_parameters_launch.py
 
 ![ROS2](img/ros_client_library_api_stack.png)
 <p style="text-align:center; color:orange">图？：ros客户端库API分层</p>
-
-### 2.11 在Python中使用参数(Parameters)
-本小节参照入门教程[Using parameters in a class (Python)](https://docs.ros.org/en/humble/Tutorials/Beginner-Client-Libraries/Using-Parameters-In-A-Class-Python.html#using-parameters-in-a-class-python)的内容。
-
-我们在2.10中介绍了在C++中使用参数，这一节我们介绍在python中怎么使用paramters.
 
 ### 3.1
 
