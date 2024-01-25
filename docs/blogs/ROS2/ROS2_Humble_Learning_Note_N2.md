@@ -2247,7 +2247,7 @@ float64 radius
 这一节我们继续深入的了解了如何在同一个package使用自定义的interface.但是这并不是官方推荐的一种方式。尤其是如果在python包中使用则会非常繁琐。（与其这样不如为你的工程专门制作制作一个基础的接口package.将你会用到的特殊接口全部定义在其中。这样可以方便管理和使用。）
 
 ### 2.10 在C++类中使用参数(Parameters)
-本小节参照入门教程[Using parameters in a class](https://docs.ros.org/en/humble/Tutorials/Beginner-Client-Libraries/Using-Parameters-In-A-Class-CPP.html)的内容。
+本小节参照入门教程[Using parameters in a class（C++）](https://docs.ros.org/en/humble/Tutorials/Beginner-Client-Libraries/Using-Parameters-In-A-Class-CPP.html)的内容。
 
 我们在[笔记1](https://watershade.github.io/ROS2/ROS2_Humble_Learning_Note_1)中
 本节将学习如何在C++类中使用parameters。在开始之前我们不妨先建立一个基本的工程，随后再一步一步了解怎么在被工程中引用parameters，最后学会在launch中设置参数。
@@ -2398,13 +2398,78 @@ $ ros2 param set /minimal_param_node my_parameter earth/sky
 
 
 #### 2.10.3 从launch修改参数
+通过param修改参数是一种临时修改，如果需要长期修改，则需要修改launch文件。我们可以修改launch文件，使得参数可以在launch文件中设置。
 
+但是launch方式修改的流程相对复杂一些。我们现在来学习怎么使用launch文件修改参数吧。首先我们先在package目录下创建一个名字叫做`launch`文件夹：
+```bash
+## 确保我们已经cd到了demo7_ws工作区;当然你也可以进入到cpp_parameters包目录下
+## 我的操作都假定目前正位于demo7_ws工作区目录下
+$ mkdir -p src/cpp_parameters/launch
+## 我们照例在vscode里面打开cpp_parameters包目录
+$ code src/cpp_parameters
+```
+然后我们在launch文件夹下创建一个名字叫做`cpp_parameters_launch.py`的文件，内容如下：
+```python
+from launch import LaunchDescription
+from launch_ros.actions import Node
 
+def generate_launch_description():
+    return LaunchDescription([
+        Node(
+            package="cpp_parameters",
+            executable="minimal_param_node",
+            name="custom_minimal_param_node",
+            output="screen",
+            emulate_tty=True,
+            parameters=[
+                {"my_parameter": "earth"}
+            ]
+        )
+    ])
+```
+这里需要说明一下，这里的package和executable名称均是我们在2.10.2中使用的名称。executable的获取我们可以使用`ros2 pkg executables cpp_parameters`来获取。我们设置的为name设置的`custom_minimal_param_node`,也会在后面launch测试的时候显示出来.你稍后可以留意。
 
+我们接下来修改CMakeLists.txt文件，以确保setup脚本可以调用launch实现对参数的编辑.添加：
+```txt
+install(
+  DIRECTORY launch
+  DESTINATION share/${PROJECT_NAME}
+)
+```
 
+然后我们编译一下：
+```bash
+$ colcon build --packages-select cpp_parameters
+Starting >>> cpp_parameters
+Finished <<< cpp_parameters [0.71s]                     
 
+Summary: 1 package finished [1.31s]
+```
 
+好了现在我们开始测试吧。让我们先source一下环境变量：
+```bash
+source install/setup.bash
+```
 
+接着使用launch命令执行刚才的`cpp_parameters_launch.py`的文件：
+```bash
+ros2 launch cpp_parameters cpp_parameters_launch.py
+```
+测试结果如下：
+![通过launch设置参数实验](img/launch_set_param.gif)
+<p style="text-align:center; color:orange">图16：通过launch设置参数实验</p>
+
+扩展：
+另外我发现，对于python文件编译的过程实际上是检查编译通过后之后将python文件copy到install/cpp_parameters/share/cpp_parameters/launch/的目录中。如果我们这时候修改一下这个python文件，比方我们将earth改成Mars，会发现：
+```bash
+$ ros2 launch cpp_parameters cpp_parameters_launch.py
+[INFO] [launch]: All log files can be found below /home/galileo/.ros/log/2024-01-25-12-23-16-861542-Galileo-Dell-Linux-23086
+[INFO] [launch]: Default logging verbosity is set to INFO
+[INFO] [minimal_param_node-1]: process started with pid [23087]
+[minimal_param_node-1] [INFO] [1706156597.930575708] [custom_minimal_param_node]: Hello Mars!!
+[minimal_param_node-1] [INFO] [1706156598.930572550] [custom_minimal_param_node]: Hello world!
+[minimal_param_node-1] [INFO] [1706156599.930544611] [custom_minimal_param_node]: Hello world!
+```
 
 
 
@@ -2416,7 +2481,10 @@ $ ros2 param set /minimal_param_node my_parameter earth/sky
 ![ROS2](img/ros_client_library_api_stack.png)
 <p style="text-align:center; color:orange">图？：ros客户端库API分层</p>
 
+### 2.11 在Python中使用参数(Parameters)
+本小节参照入门教程[Using parameters in a class (Python)](https://docs.ros.org/en/humble/Tutorials/Beginner-Client-Libraries/Using-Parameters-In-A-Class-Python.html#using-parameters-in-a-class-python)的内容。
 
+我们在2.10中介绍了在C++中使用参数，这一节我们介绍在python中怎么使用paramters.
 
 ### 3.1
 
