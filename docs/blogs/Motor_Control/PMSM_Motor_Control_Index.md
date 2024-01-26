@@ -45,6 +45,7 @@ FOC（Field-Oriented Control）是一种基于场域控制的电机控制算法�
 
 * [知乎/沉沙Motor一下](https://www.zhihu.com/people/gun-ne-ni)
 * [Matlab弱磁控制介绍](https://ww2.mathworks.cn/discovery/field-weakening-control.html)
+* [使用霍尔传感器的 PMSM 的磁场定向控制](https://ww2.mathworks.cn/help/mcb/gs/foc-pmsm-using-hall-sensor-example.html)
 
 
 
