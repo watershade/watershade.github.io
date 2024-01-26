@@ -2727,30 +2727,350 @@ $ ros2 launch python_parameters python_parameters_launch.py
 ### 2.12 使用`ros2doctor`识别错误
  本小节参照入门教程[Using ros2doctor to identify issues](https://docs.ros.org/en/humble/Tutorials/Beginner-Client-Libraries/Getting-Started-With-Ros2doctor.html)的内容。
 
-我们在笔记1中简单描述过`ros2 doctor`可以排查故障。这个命令的底层使用的工具就是`ros2doctor`.它可以检查ROS2的各个方面，包括平台、版本、网络、环境、运行系统等，并警告您可能的错误和问题原因。
+我们在笔记1中简单描述过`ros2 doctor`可以排查故障。这个命令的底层使用的工具就是`ros2doctor`.它可以检查ROS2的各个方面，包括平台、版本、网络、环境、运行系统等，并警告您可能的错误和问题原因。`ros2doctor`是`ros2cli`包的一部分。只要`ros2cli`被正确安装，`ros2doctor`就可以正常运行。
+
+我使用`ros2 doctor`检查我的ros2结果如下：
+```bash
+$ ros2 doctor
+/opt/ros/humble/lib/python3.10/site-packages/ros2doctor/api/package.py: 112: UserWarning: joint_limits has been updated to a new version. local: 2.36.0 < latest: 2.37.0
+/opt/ros/humble/lib/python3.10/site-packages/ros2doctor/api/package.py: 112: UserWarning: tricycle_steering_controller has been updated to a new version. local: 2.30.0 < latest: 2.32.0
+## omit ...
+/opt/ros/humble/lib/python3.10/site-packages/ros2doctor/api/package.py: 119: UserWarning: Cannot find the latest versions of packages: python_parameters robotiq_hardware_tests robotiq_driver serial moveit2_tutorials [...] Use `ros2 doctor --report` to see full list.
+
+All 5 checks passed
+```
+显示的这些警告提示我有一些packages需要更新。但是最终还是提示了`All 5 checks passed`。
+如果因为某种原因导致我的包出错应该会有大概类似下面的提示：
+```
+1/5 checks failed
+
+Failed modules:  network
+```
+
+除了静态查找错误，ros2doctor还可以检查动态错误。比如按照入门教程的说法我先运行`ros2 run turtlesim turtlesim_node`然后运行`ros2 run turtlesim turtle_teleop_key`会显示额外的警告：
+```txt
+/opt/ros/humble/lib/python3.10/site-packages/ros2doctor/api/topic.py: 42: UserWarning: Publisher without subscriber detected on /turtle1/color_sensor.
+/opt/ros/humble/lib/python3.10/site-packages/ros2doctor/api/topic.py: 42: UserWarning: Publisher without subscriber detected on /turtle1/pose.
+```
+这些警告提示/turtle1/color_sensor和/turtle1/pose没有订阅者。如果你设法订阅（可通过`ros2 topic echo`去订阅或者其它方法。），就会发现相应的警告消失了。
+
+因为能够检测到动态（ROS2节点运行时）的错误，所以ros2doctor可以帮助我们更快的定位问题。
+
+当需要更全面的排查警告或者错误的时候，一份完整的报告将是非常有用的。我们可以通过`ros2 doctor --report`命令生成报告。
+
+```bash
+$ ros2 doctor --report
+
+   NETWORK CONFIGURATION
+inet         : 127.0.0.1
+# omit...
+OADCAST,MULTICAST,UP>
+mtu          : 1500
+
+   PACKAGE VERSIONS
+robotiq_hardware_tests                             : latest=, local=0.0.1
+# omit ...
+   PLATFORM INFORMATION
+system           : Linux
+# omit...
+
+   QOS COMPATIBILITY LIST
+compatibility status    : No publisher/subscriber pairs found
+
+   RMW MIDDLEWARE
+middleware name    : rmw_fastrtps_cpp
+
+   ROS 2 INFORMATION
+distribution name      : humble
+# omit...
+
+   TOPIC LIST
+topic               : none
+publisher count     : 0
+subscriber count    : 0
+```
+生成的报告包含了NETWORK、PACKAGE VERSIONS、PLATFORM INFORMATION、QOS COMPATIBILITY LIST、RMW MIDDLEWARE、ROS 2 INFORMATION、TOPIC LIST等部分。
+
+但是需要强调的是ros2doctor并不是一个调试工具，它不能帮助你排查你代码中的问题或者是系统部署情况的问题。
+
+关于ros2doctor的更多信息，请参考[ros2doctor](https://github.com/ros2/ros2cli/tree/humble/ros2doctor)文档。
 
 
+### 2.13 创建和使用插件（C++）
+本小节参照入门教程[Creating and using plugins (C++)](https://docs.ros.org/en/humble/Tutorials/Beginner-Client-Libraries/Pluginlib.html)的内容。
 
+#### 2.13.1 插件库（Pluginlib）
+插件(Plugin)是在现有软件基础上扩展功能的一种组件。插件是从运行时库（runtime。即共享对象、动态链接库）加载的动态可加载类。ROS2使用插件来扩展软件包的现有功能。插件对于扩展/修改应用程序行为非常有用，而无需应用程序源代码。
 
+插件库(Pluginlib)是ROS包用来加载和卸载插件的C++库。 使用pluginlib，您不必将应用程序显式链接到包含类的库；相反pluginlib可以在任何时候打开包含导出类的库，而应用程序无需事先了解该库或包含类定义的头文件。 
 
+#### 2.13.2 创建基础包(base package)
+本教程将创建两个packages。一个是基础包（base package），用来定义基类（Base Class）；另一个是插件包（plugin package），用来实现具体的插件（Plugin）。在基类中我们将创建一个通用的多边形类，并在插件包中实现具体的多边形类。我们不妨将两个包放在一个工作区中，命名为demo9_ws.
 
+```bash
+## 先确保已经cd到你准备存放工作区的目录
+mkdir -p demo9_ws/src
+cd demo9_ws
+```
 
+这一部分我们先来创建基础包。基础包的名字叫做polygon_base，依赖于pluginlib库,内部节点的名字我们显式命名为area_node。现在让我们创建这个ament_cmake包吧：
+```base
+$ ros2 pkg create polygon_base --destination-directory src --build-type ament_cmake --license Apache-2.0 --dependencies pluginlib --node-name area_node --description "A package for create regular polygons"
+$ tree src/polygon_base/
+src/polygon_base/
+├── CMakeLists.txt
+├── include
+│   └── polygon_base
+├── LICENSE
+├── package.xml
+└── src
+    └── area_node.cpp
 
+3 directories, 4 files
 
+## 现在打开vscode
+$ code src/polygon_base/
+```
+我们创建一个头文件（位于include/polygon_base/目录下）regular_polygon.hpp，内容如下：
+```cpp
+#ifndef POLYGON_BASE_REGULAR_POLYGON_HPP
+#define POLYGON_BASE_REGULAR_POLYGON_HPP
 
+namespace polygon_base
+{
+  class RegularPolygon
+  {
+    public:
+      virtual void initialize(double side_length) = 0;
+      virtual double area() = 0;
+      virtual ~RegularPolygon(){}
 
+    protected:
+      RegularPolygon(){}
+  };
+}  // namespace polygon_base
 
+#endif  // POLYGON_BASE_REGULAR_POLYGON_HPP
+```
+这个类定义了一个基类RegularPolygon，它有三个虚函数：initialize、area和析构函数。initialize函数用来设置多边形的边长，area函数用来计算多边形的面积。
+需要注意的一件事是初始化方法的存在。 对于pluginlib，需要一个不带参数的构造函数，因此如果类需要任何参数，我们使用initialize方法将它们传递给对象。
 
+尽管我们定义了类，但是我们稍后再来实现他。现在我们需要让编译器能够识别这个文件。先修改CMakelists.txt文件，添加如下内容：
+```cmake
+install(
+  DIRECTORY include/
+  DESTINATION include
+)
+```
+请注意我们在创建包的时候指明了node name,所以工程src下还会自动生成一个area_node.cpp的文件。而且CMakefiles.txt文件也会自动包含了相关cpp文件。
 
+#### 2.13.3 创建插件包(plugin package)
+现在我们创建一个名字叫polygon_plugins的包，依赖于pluginlib和刚刚创建的package：polygon_base。此外我们还需要制定她的`--library-name`为`polygon_plugins`，`--plugin-name`为`polygon_plugin`，`--description`为"A package for create regular polygons"。现在我们来创建它吧：
+```bash
+$ ros2 pkg create polygon_plugins --destination-directory src --build-type ament_cmake --license Apache-2.0 --dependencies polygon_base --library-name polygon_plugins --dependencies polygon_base pluginlib  --description "A package for create regular polygons"
+$ tree src/polygon_plugins/
+src/polygon_plugins/
+├── CMakeLists.txt
+├── include
+│   └── polygon_plugins
+│       ├── polygon_plugins.hpp
+│       └── visibility_control.h
+├── LICENSE
+├── package.xml
+└── src
+    └── polygon_plugins.cpp
 
+3 directories, 6 files
+## 现在打开vscode
+$ code src/polygon_plugins/
+```
+然后我们添加在polygon_plugins.cpp文件添加如下代码：
+```cpp
+#include "polygon_plugins/polygon_plugins.hpp"
+#include <polygon_base/regular_polygon.hpp>
+#include <cmath>
 
+namespace polygon_plugins
+{
+  class Square : public polygon_base::RegularPolygon
+  {
+    public:
+      void initialize(double side_length) override
+      {
+        side_length_ = side_length;
+      }
 
+      double area() override
+      {
+        return side_length_ * side_length_;
+      }
 
+    protected:
+      double side_length_;
+  };
+
+  class Triangle : public polygon_base::RegularPolygon
+  {
+    public:
+      void initialize(double side_length) override
+      {
+        side_length_ = side_length;
+      }
+
+      double area() override
+      {
+        return 0.5 * side_length_ * getHeight();
+      }
+
+      double getHeight()
+      {
+        return sqrt((side_length_ * side_length_) - ((side_length_ / 2) * (side_length_ / 2)));
+      }
+
+    protected:
+      double side_length_;
+  };
+}
+
+#include <pluginlib/class_list_macros.hpp>
+
+PLUGINLIB_EXPORT_CLASS(polygon_plugins::Square, polygon_base::RegularPolygon)
+PLUGINLIB_EXPORT_CLASS(polygon_plugins::Triangle, polygon_base::RegularPolygon)
+```
+上面分别定义了两个类：一个创建正三角形，一个创建正方形。并在area区域求边长。代码的最后两行使用`PLUGINLIB_EXPORT_CLASS`宏来导出这两个类。
+
+上述步骤允许在加载包含的库时创建插件实例，但插件加载器仍然需要一种方法来查找该库并知道在该库中引用什么。为此，我们还将创建一个XML文件，该文件以及包清单中的特殊导出行，使有关我们的插件的所有必要信息可供ROS工具链使用。我们需要在package根目录下创建一个叫做`plugins`的xml文件。并填充如下内容：
+```
+<library path="polygon_plugins">
+  <class type="polygon_plugins::Square" base_class_type="polygon_base::RegularPolygon">
+    <description>This is a square plugin.</description>
+  </class>
+  <class type="polygon_plugins::Triangle" base_class_type="polygon_base::RegularPolygon">
+    <description>This is a triangle plugin.</description>
+  </class>
+</library>
+```
+在这个文件中描述了插件类和基类的名称，并添加了必要的描述。有几点需要注意：
+* `library`标签提供了包含我们要导出的插件的库的相对路径。在 ROS2中，这只是库的名称。在ROS1中，它包含前缀lib或有时lib/lib（即lib/libpolygon_plugins），但这里更简单。
+* `class`标签声明了我们要从库中导出的插件。 我们来看看它的参数：
+  * `type`：插件的完全限定类型。 对于我们来说，这就是 Polygon_plugins::Square。
+  * `base_class`：插件的完全限定基类类型。 对于我们来说，那就是Polygon_base::RegularPolygon。
+  * `description`：插件及其用途的描述。
+
+我们还需要让编译器输出插件，需要在CMakeLists.txt文件中添加：
+```cmake
+pluginlib_export_plugin_description_file(polygon_base plugins.xml)
+```
+需要注意的是这和在ROS1中的是有区别的。在ROS1中需要修改package.xml文件，添加：
+```xml
+<export>
+  <plugin plugin="${prefix}/polygon_plugins">
+    <class name="polygon_plugins::Square" />
+    <class name="polygon_plugins::Triangle" />
+  </plugin>
+</export>
+```
+pluginlib_export_plugin_description_file 命令的参数是:
+* 带有基类的包，即polygon_base。
+* 插件声明xml的相对路径，即plugins.xml。
+
+#### 2.13.4 修改基础包(base package)以使用插件
+我们现在修改plugin_base包中的area_node.cpp文件，使其使用插件。首先，我们需要包含插件的头文件：
+```cpp
+#include <polygon_plugins/polygon_plugins.hpp>
+```
+然后，我们需要创建一个插件管理器：
+```cpp
+#include <pluginlib/class_loader.hpp>
+
+int main(int argc, char** argv)
+{
+  // To avoid unused parameter warnings
+  (void) argc;
+  (void) argv;
+
+  pluginlib::ClassLoader<polygon_base::RegularPolygon> poly_loader("polygon_base", "polygon_base::RegularPolygon");
+
+  try
+  {
+    std::shared_ptr<polygon_base::RegularPolygon> triangle = poly_loader.createSharedInstance("polygon_plugins::Triangle");
+    triangle->initialize(10.0);
+
+    std::shared_ptr<polygon_base::RegularPolygon> square = poly_loader.createSharedInstance("polygon_plugins::Square");
+    square->initialize(10.0);
+
+    printf("Triangle area: %.2f\n", triangle->area());
+    printf("Square area: %.2f\n", square->area());
+  }
+  catch(pluginlib::PluginlibException& ex)
+  {
+    printf("The plugin failed to load for some reason. Error: %s\n", ex.what());
+  }
+
+  return 0;
+}
+```
+在程序开头先用`pluginlib::ClassLoader`类来加载插件。这个类需要两个必传参数和两个默认参数：
+* 第一个参数`package`是插件所在的包的名称。
+* 第二个参数`base_class`是插件的基类名称。
+* 第三个参数`attrib_name`是要在 maniext.xml 文件中搜索的属性，默认为“plugin”。
+* 第四个参数`plugin_xml_paths`是搜索plugin.xml文件的路径列表，默认通过ros::package::getPlugins()爬取。
+
+前两个参数必须指明。在上面的代码中插件所在的包是我们创建的基包（Base Package）"polygon_base"；插件的基类是我们在基包中创建的基类(Base Class)"polygon_base::RegularPolygon"。
+
+因为`createSharedInstance`方法的加载可能会有异常，所以我们用`try-catch`块来捕获异常。在try块中，我们使用`createSharedInstance`方法创建了两个插件实例，分别是正三角形和正方形。我们调用initialize方法来设置边长，并调用area方法来计算面积。
+
+查看`createSharedInstance`的源码可以看到，它会调用`loadLibraryForClass`方法来加载库，然后调用`createUniqueInstance`方法来创建实例。
+
+重要提示：定义此节点的`Polygon_base`包不依赖于`Polygon_plugins`类。插件将动态加载，无需声明任何依赖项。 此外，我们使用硬编码的插件名称实例化类，但您也可以使用参数等动态地执行此操作。
+
+但是这个例子其实并没有很好的展示插件如何动态加载的。我们需要在运行时加载插件，而不仅仅是在编译时。好的软件应该提供一个机制来动态加载插件，而不仅仅是编译时。
+
+#### 2.13.5 编译和运行
+现在我们可以编译和运行程序了。首先，我们需要编译polygon_base包：
+```bash
+$ rosdep check --from-paths src --ignore-src --rosdistro humble -y
+All system dependencies have been satisfied
+$ colcon build --packages-select polygon_base
+Starting >>> polygon_base
+Finished <<< polygon_base [2.78s]                     
+
+Summary: 1 package finished [3.41s]
+```
+可以看到在polygon_plugins尚未编译的时候，polygon_base已经成功编译。也说明了基包并不依赖于插件本身。然后，我们可以编译polygon_plugins包：
+```bash
+$ colcon build --packages-select polygon_plugins
+```
+现在我们可以验证一下包ready：
+```bash
+$ source install/setup.bash
+$ ros2 pkg list | grep polygon
+polygon_base                    
+polygon_plugins                 
+$ ros2 pkg executables polygon_base
+polygon_base area_node
+```
+最后，我们可以运行area_node节点：
+```bash
+$ ros2 run polygon_base area_node
+```
+输出应该如下：
+```
+Triangle area: 43.30
+Square area: 100.00
+```
+area_node节点成功运行，并自动完成插件的加载。
+
+#### 2.13.6 总结
+至此，我们完成了插件的创建和使用。插件的功能目前我还没有深刻体会，后面再继续了解吧。
 
 ## 三、ROS API
+在上面的章节中无论是创建Topic,Service,Paramrter,我们都用到了rcl(rclcpp,rclpy)API，但是我们没有对其有一个深刻的印象。在本节中，我们将更全面的了解ROS2中的主要API，并深入了解一下它们。
+
+
 
 * `rmw`: the ROS middleware interface. The rmw API is the interface between the ROS 2 software stack and the underlying middleware implementation. The underlying middleware used for ROS 2 is either a DDS or RTPS implementation, and is responsible for discovery, publish and subscribe mechanics, request-reply mechanics for services, and serialization of message types.
-* `rpl`: the ROS client library interface. The rcl API is a slightly higher level API which is used to implement the client libraries and does not touch the middleware implementation directly, but rather does so through the ROS middleware interface (rmw API) abstraction.
+* `rcl`: the ROS client library interface. The rcl API is a slightly higher level API which is used to implement the client libraries and does not touch the middleware implementation directly, but rather does so through the ROS middleware interface (rmw API) abstraction.
 
 ![ROS2](img/ros_client_library_api_stack.png)
 <p style="text-align:center; color:orange">图？：ros客户端库API分层</p>
