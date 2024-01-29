@@ -29,6 +29,9 @@ permalink: /MC/notes_on_books_about_FOC/
 ### 1.3 第三章/软件准备
 这一章分成了三个部分。第一部分讲了keil的配置，并制作了一个示例程序演示了怎么编译和烧写。第二部分讲了[J-Scope](https://www.segger.com/products/debug-probes/j-link/tools/j-scope/)的使用。因为本教程使用的是JLINK,所以可以使用这种办法。Segger官方有更全面的介绍，可以参考[这里](https://wiki.segger.com/UM08028_J-Scope)。文中没有介绍[RTT](https://www.segger.com/products/debug-probes/j-link/technology/about-real-time-transfer/),如果你想知道怎么使用RTT，也可以查看相关链接。第三部分各个功能模块的编程和测试。
 
+* 关于ADC采样： 对于只有一个ADC模块的单片机，只能一次转换各个通道;对于有2个或者更多ADC模块的单片机，可以同时触发几个ADC模块同步进行采样。当然，有的单片机具有2个甚至4个采样保持电路，可以同时触发几个采样保持电路同时采集多个通道的电压。然后由一个ADC模块逐一转换。同步触发采样的信号是最好的。
+
+
 
 
 
