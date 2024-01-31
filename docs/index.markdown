@@ -27,6 +27,7 @@ title: Catalog
 
 ## ROS2
 * [ROS2 Humble学习笔记 (1)](/ROS2/ROS2_Humble_Learning_Note_1/)
+* [ROS2 Humble学习笔记 (2)](/ROS2/ROS2_Humble_Learning_Note_2/)
 * [Rapberry Pi 4 安装VxWorks笔记](/ROS2/How_To_Install_Vxworks_On_PRI4/)
 
 ## STM32 Knowledge

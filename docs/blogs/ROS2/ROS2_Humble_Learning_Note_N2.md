@@ -3067,6 +3067,43 @@ area_node节点成功运行，并自动完成插件的加载。
 ## 三、ROS API
 在上面的章节中无论是创建Topic,Service,Paramrter,我们都用到了rcl(rclcpp,rclpy)API，但是我们没有对其有一个深刻的印象。在本节中，我们将更全面的了解ROS2中的主要API，并深入了解一下它们。
 
+这部分编写过程中参考了如下文档：
+* [Internal ROS 2 interfaces](https://docs.ros.org/en/humble/Concepts/Advanced/About-Internal-Interfaces.html)
+* [API Documentation](https://docs.ros.org/en/humble/API-Docs.html)
+* [API Docs List](https://docs.ros2.org/latest/api/)
+* [ROS 2 middleware implementations](https://docs.ros.org/en/humble/Concepts/Advanced/About-Middleware-Implementations.html)
+
+### 3.1 客户端库(Client Libraries)
+本小节主要参考了[Client libraries](https://docs.ros.org/en/humble/Concepts/Basic/About-Client-Libraries.html)的内容。
+
+客户端库是允许用户实现其ROS2代码的应用程序接口。通过客户端库，用户可以访问节点(Node)、主题(Topic)、服务(Service)等ROS2概念。客户端库有多种编程语言，因此用户可以使用最适合其应用的语言编写ROS2代码。例如，你可能更喜欢用Python来编写可视化工具，因为它能让原型迭代更快，而对于系统中注重效率的部分，用C++来实现节点可能更好。
+
+使用不同客户端库编写的节点能够相互共享信息，因为所有客户端库都实现了代码生成器，使用户能够以各自的语言与ROS2接口文件(Interface Fles)进行交互。
+
+除了特定语言的通信工具外，客户端库还为用户提供了使ROS成为"ROS"的核心功能。例如，下面列出了通常可通过客户库访问的功能：
+* 名称/Names和命名空间/Namespaces
+* 时间/Time（真实/Real或模拟/simulated）
+* 参数/Parameters
+* 控制台日志/Console Logging
+* 线程模型/Threading Model
+* 进程内通信/Intra-process communication
+
+'rcl': ROS Client Library, 是ROS客户端的缩写。我们在前面的工程中用到的rclcpp（C++客户端库）和rclpy（Python客户端库）就是ROS2中提供的两种客户端库。
+
+* `rclcpp`: rclcpp是面向用户的C++惯用接口，可提供所有ROS客户端功能，如创建节点、发布者和订阅。rclcpp构建在rcl和rosidl API的基础之上，旨在与rosidl_generator_cpp生成的 C++ 消息配合使用。rclcpp利用C++和C++17的所有特性，使界面尽可能易于使用，但由于它重用了rcl中的实现，因此能够与使用 rcl API 的其他客户端库保持一致的行为。rcl的源码位于[ROS2/RCLCPP](https://github.com/ros2/rclcpp)下。自动生成关于rclcpp的文档位于[rclcpp api index](https://docs.ros.org/en/humble/p/rclcpp/)，用户可根据需要查看。
+
+* `rclpy`: rclpy是客户端库的Python版本。与C++客户端库一样，rclpy 也是在 `rcl` C API的基础上实现的。该接口使用Native Python类型(Types)和模式（Patterns, 如列表和上下文对象），提供了一种习惯的Python体验。通过在实现中使用rcl API，它在功能和行为方面与其他客户端库保持一致。除了为rcl API和每个消息的Python类提供Python习惯绑定外，Python客户端库还负责执行模型，使用threading.Thread或类似的方法来运行rcl API中的函数。与C++一样，它为用户交互的每个ROS消息生成自定义Python代码，但与C++不同的是，它最终将本机Python消息对象转换为消息的C版本。所有操作都发生在消息的Python版本上，直到它们需要传递到`rcl`层，此时它们被转换为消息的纯C版本，以便它可以传递到`rcl` C API。 如果可能的话，在同一进程中的发布者和订阅者之间进行通信时可以避免这种情况，以减少与Python之间的转换。`rclpy`的源码位于·[ROS2/RCLPY](https://github.com/ros2/rclpy)下，自动生成关于rclpy的文档位于[rclpy api for foxy](http://docs.ros2.org/foxy/api/rclpy/index.html)或[rclpy api for iron](https://docs.ros.org/en/iron/p/rclpy/)，用户可根据需要查看。
+
+除了上面的两个有ROS官方维护的库外，还有几个社区维护的库：比如之处RUST语言的[ros2-rust/ros2_rust](https://github.com/ros2-rust/ros2_rust), Node.js的[rclnodejs
+](https://www.npmjs.com/package/rclnodejs)。还有一个对rcl库进行补充以构成完成客户端库的[rclc](https://github.com/ros2/rclc).
+
+最后再终端说一下`rcl`库。客户机程序库中的大部分功能并不是客户机程序库的编程语言所特有的。例如，参数的行为和命名空间的逻辑最好在所有编程语言中都相同。正因为如此，客户机库不需要从头开始实现通用功能，而是使用一个通用的核心 ROS 客户机库（RCL）接口来实现 ROS 概念的逻辑和行为，而这些功能与语言无关。因此，客户端库只需用外来函数接口封装 RCL 中的通用功能即可。这样，客户端库就更精简，也更易于开发。由于 C 语言通常是客户端库最容易封装的语言，因此 RCL 的常用功能都使用 C 接口。除了使客户程序库轻量化外，使用通用核心的一个好处是不同语言之间的行为更加一致。如果对 RCL 核心功能的逻辑/行为（例如命名空间）做了任何更改，所有使用 RCL 的客户端库都将反映这些更改。此外，有了共同的核心，维护多个客户端库的错误修复工作也会变得更轻松。`rcl`库的源码位于[ros2/rcl](https://github.com/ros2/rcl).
+
+需要特定于语言的功能/属性的客户端库概念不在 RCL 中实现，而是在每个客户端库中实现。 例如，“spin”函数使用的线程模型将具有特定于客户端库语言的实现。
+
+
+
+### 3.1
 
 
 * `rmw`: the ROS middleware interface. The rmw API is the interface between the ROS 2 software stack and the underlying middleware implementation. The underlying middleware used for ROS 2 is either a DDS or RTPS implementation, and is responsible for discovery, publish and subscribe mechanics, request-reply mechanics for services, and serialization of message types.
@@ -3075,7 +3112,6 @@ area_node节点成功运行，并自动完成插件的加载。
 ![ROS2](img/ros_client_library_api_stack.png)
 <p style="text-align:center; color:orange">图？：ros客户端库API分层</p>
 
-### 3.1
 
 
 ## 四、Y
@@ -3105,7 +3141,11 @@ Jetson相关：
 * [IDL Mapping](https://design.ros2.org/articles/idl_interface_definition.html)
 * [Interface Design](https://design.ros2.org/articles/interface_definition.html)
 * [Launch](https://docs.ros.org/en/humble/Tutorials/Intermediate/Launch/Launch-Main.html)
-
+* [rcl library](https://docs.ros.org/en/humble/p/rcl/)
+* [rclcpp](https://docs.ros2.org/latest/api/rclcpp/)
+* [humble api list](https://docs.ros.org/en/humble/p/)
+* [ROS Index](https://index.ros.org/)
+* [ROS2 CANopen Stack](https://ros-industrial.github.io/ros2_canopen/manual/humble/)
 
 Linux相关：
 * [Tmux使用教程](https://www.ruanyifeng.com/blog/2019/10/tmux.html)
