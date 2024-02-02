@@ -43,11 +43,6 @@ permalink: /MC/notes_on_books_about_FOC/
 
 
 
-
-
-
-
-
 ## 二. 《深入理解无刷直流电机矢量控制技术》，上官致远/张健， ISBN 978-7-03-065510-3
 本书借阅于深圳科技图书馆，作者上官致远和张健。本书正文总共118页。分为10个章节。本书印刷质量较好，全书配彩图。本书示例用到的是STM32F40X系列单片机。目前此单片机价格适中。考虑到对ST单片机相对更加熟练，可能会在后期使用STM32单片机制作自己的开发板。本书从电机原理、方波控制原理、矢量控制原理、SVPWM原理和测速原理、电机参数测量等多方面讲解了无刷电机的控制。相比于《无感FOC入门指南》本书的理论讲解更加细致，有助于理解矢量控制的原理。编程实践部分较少，但也有一些示例代码。本书对无感FOC稍有讲解，但是重点在于传统的FOC技术。
 
@@ -79,7 +74,86 @@ permalink: /MC/notes_on_books_about_FOC/
 2. H:ON/PWM:L 即其中一相上桥臂一直开通，只用PWM调节另一相的下桥臂。
 3. H:PWM/L:PWM 即两相桥臂对应的功率管互补调节。互补的好处是，上管关断的瞬间，可以由下官续流，而不经过续流二极管，可以避免大电流损害功率管。
 
-AB
+
+### 2.3 第三章/矢量控制基础
+这一章介绍对矢量控制原理介绍的比较清晰一点。公式推导也很细致，很多其它的书籍避开了公式的推导，反而让人有很多疑问。
+
+开头讲了FOC诞生与一个期望高效稳定的控制三相交流感应电机的需求，由K.Hasse和F.Blaschke在70年代提出的。这种方法通过一系列坐标变换接耦复杂的电流关系，使得交流电机变得简单可控。
+
+本书也交代了一个简单的事实：无论哪种电机，它的转矩都正比于定子磁场和转子磁场的叉乘，即它们所围城的平行四边形的面积。因此当定子磁场和转子磁场（在两者幅值不变时）夹角90度时，电机产生的力矩最大。
+
+矢量控制的核心思想是将三相电流形成的旋转磁场从3s坐标系转换到2S正交坐标系，然后再从2s座标系转换到2r坐标系中。旋转的过程中，形成的旋转矢量始终等效。
+
+三相对称正弦电流可以这样表示：
+
+$I_A(t) = I_{m} \sin(\omega t)$
+
+$I_B(t) = I_{m} \sin(\omega t - \frac{2\pi}{3})$
+
+$I_C(t) = I_{m} \sin(\omega t - \frac{4\pi}{3})$
+
+其中$I$是电流，$\omega$是电机转速，$t$是时间。
+
+根据欧拉公式$e^{j\theta} = \cos(\theta) + j\sin(\theta)$，经过一步一步推导可以得到：
+
+$\vec{I_s} = \frac{3}{2}I_{m} \cos(\omega t) + j\frac{3}{2}\sin(\omega t)$
+
+也可表示成：
+$\vec{I_s} = \frac{3}{2}I_{m} e^{j\theta} $
+
+然后讲了Clarke变换。其实Clarke变换本质是矩阵的运算。它比较容易理解,就是常规的坐标系转换。比如等幅值变换公式如下：
+
+$ \begin{bmatrix} I_{\alpha} \\ I_{\beta} \ \end{bmatrix}  = \frac{2}{3}\begin{bmatrix} 1 & -\frac{1}{2} & -\frac{1}{2} \\ 0 & \frac{\sqrt{3}}{2} & -\frac{\sqrt{3}}{2} \ \end{bmatrix} \begin{bmatrix} I_a \\ I_b \\ I_c \\ \end{bmatrix}$
+
+或
+
+$ \begin{bmatrix} U_{\alpha} \\ U_{\beta} \ \end{bmatrix}  = \frac{2}{3}\begin{bmatrix} 1 & -\frac{1}{2} & -\frac{1}{2} \\ 0 & \frac{\sqrt{3}}{2} & -\frac{\sqrt{3}}{2} \ \end{bmatrix} \begin{bmatrix} U_a \\ U_b \\ U_c \\ \end{bmatrix}$
+
+
+为什么前面的系数是2/3?你可以理解到在s2坐标系$I_{\alpha}$和$I_{\beta}$构成的旋转矩阵的幅度要达到$I_m$时，需要将$I_m$的$\frac{3}{2}$倍乘到$I_{\alpha}$和$I_{\beta}$上。因此在等幅值变换中，很多要乘以$\frac{2}{3}$以消除幅度的差异。
+
+前面的Clarke变换不仅对电流如此（对于电压也同样如此），三相对称电压的幅度Um转换之后的幅度也是$\frac{3}{2}U_m$.不带系数直接转换后到s2的P的$\alpha$和$\beta$的幅度就是$\frac{9}{4}U_m*I_m$.总功率是$\alpha$和$\beta$之和$\frac{9}{2}U_m*I_m$。原先三相对称电压的每一相的幅度$U_m*I_m$，三相总和是$3U_m*I_m$.因此转换后的幅度是原来幅度的$\frac{3}{2}$倍。因此功率的修正参数$\frac{2}{3}$，具体到无论电流或者电压关系中就需要求根号即电流或者电压的转换矩阵的系数是$\sqrt{\frac{2}{3}}$:
+
+$ \begin{bmatrix} I_{\alpha} \\ I_{\beta} \ \end{bmatrix}  = \sqrt{\frac{2}{3}}\begin{bmatrix} 1 & -\frac{1}{2} & -\frac{1}{2} \\ 0 & \frac{\sqrt{3}}{2} & -\frac{\sqrt{3}}{2} \ \end{bmatrix} \begin{bmatrix} I_a \\ I_b \\ I_c \\ \end{bmatrix}$
+
+或
+
+$ \begin{bmatrix} U_{\alpha} \\ U_{\beta} \ \end{bmatrix}  = \sqrt{\frac{2}{3}}\begin{bmatrix} 1 & -\frac{1}{2} & -\frac{1}{2} \\ 0 & \frac{\sqrt{3}}{2} & -\frac{\sqrt{3}}{2} \ \end{bmatrix} \begin{bmatrix} U_a \\ U_b \\ U_c \\ \end{bmatrix}$
+
+从S3转换到S2之后，电流关系还是没有解耦。还需要Park变换将其从S2转换到R2。即从$\alpha-\beta$坐标系转换到$d-q$坐标系。其中$d-q$坐标系是一个和$\omega$同步旋转的坐标系，无论电流还是电压在d-q坐标系中都是常数，两者完全解耦。
+
+后面又讲了永磁同步电机的几个重要的数学方程.
+
+先将电压方程：
+$\begin{equation}  V_d = R_s i_d + L_d \frac{di_d}{dt} - \omega \psi_q \end{equation}$
+
+$\begin{equation}  V_q = R_s i_q + L_q \frac{di_q}{dt} + \omega \psi_d   \end{equation}$
+在上面的方程中，
+* $V_d$ 和 $V_q$ 分别表示d轴和q轴的电压
+* $R_s$ 表示定子电阻
+* $i_d$ 和 $i_q$ 分别表示d轴和q轴的电流分量
+* $L_d$ 和 $L_q$ 分别表示d轴和q轴的电感
+* $\frac{di_d}{dt}$ 和 $\frac{di_q}{dt}$ 表示电流的变化率
+* $\omega$ 表示转子角速度
+* $\psi_d$ 和 $\psi_q$ 分别表示d轴和q轴的磁链.
+
+上面的两个公式都有三部分组成：第一项表示电阻造成的压降；第二项表示电感造成的压降；第三项表示磁链变化造成的电压变化。前两相比较好理解，这里主要解释一下第三项。
+
+在电气机械系统中，电动机的磁场与电流、转子位置等之间存在耦合关系。当永磁同步电机的转子运动导致磁链的变化时，根据法拉第电磁感应定律，这将导致在电机绕组中产生电动势，从而产生感应电压。这就是磁链变化引起的电压变化。
+
+
+
+然后是磁链方程（文中先交代磁链方程）：
+
+$\begin{equation}   \psi_d = L_d i_d + \psi_m  \end{equation}$
+
+$\begin{equation}  \psi_q = L_q i_q \end{equation}$
+
+在这些方程中，$\psi_d$ 和 $\psi_q$ 分别表示d轴和q轴的磁链，$L_d$ 和 $L_q$ 是对应的电感，$i_d$ 和 $i_q$ 分别表示d轴和q轴的电流分量，而 $\psi_m$ 是永磁体产生的磁链。
+
+在永磁同步电机中，d轴和q轴所表示的是电机的两个正交轴。因为永磁体产生的磁场是固定的，与电流无关，所以永磁体产生的磁链$\psi_m$只会影响与永磁体磁场方向一致的轴，即d轴。对于d轴，永磁体的磁链会与电流产生的磁链相叠加，所以d轴的磁链方程中会有一项永磁体的磁链$\psi_m$。而对于q轴来说，永磁体的磁链与电流产生的磁链方向是正交的，所以永磁体的磁链不会影响q轴的磁链方程。
+
+
 
 ## 附录
 * [无刷直流电机、有刷直流电机：该如何选择？](https://www.monolithicpower.cn/cn/brushless-vs-brushed-dc-motors)
