@@ -122,26 +122,42 @@ $ \begin{bmatrix} U_{\alpha} \\ U_{\beta} \ \end{bmatrix}  = \sqrt{\frac{2}{3}}\
 
 从S3转换到S2之后，电流关系还是没有解耦。还需要Park变换将其从S2转换到R2。即从$\alpha-\beta$坐标系转换到$d-q$坐标系。其中$d-q$坐标系是一个和$\omega$同步旋转的坐标系，无论电流还是电压在d-q坐标系中都是常数，两者完全解耦。
 
+![三相绕组](img/permmag_syncmotor_windings.png)
+<p style="text-align:center; color:orange">图2：Y形接法三相绕组示意图</p>
+
+
 后面又讲了永磁同步电机的几个重要的数学方程.
 
 先将电压方程：
-$\begin{equation}  V_d = R_s i_d + L_d \frac{di_d}{dt} - \omega \psi_q \end{equation}$
+$\begin{equation}  V_d = R_s i_d + L_d \frac{di_d}{dt} - \omega_e \psi_q \end{equation}$
 
-$\begin{equation}  V_q = R_s i_q + L_q \frac{di_q}{dt} + \omega \psi_d   \end{equation}$
+$\begin{equation}  V_q = R_s i_q + L_q \frac{di_q}{dt} + \omega_e \psi_d   \end{equation}$
 在上面的方程中，
 * $V_d$ 和 $V_q$ 分别表示d轴和q轴的电压
 * $R_s$ 表示定子电阻
 * $i_d$ 和 $i_q$ 分别表示d轴和q轴的电流分量
 * $L_d$ 和 $L_q$ 分别表示d轴和q轴的电感
 * $\frac{di_d}{dt}$ 和 $\frac{di_q}{dt}$ 表示电流的变化率
-* $\omega$ 表示转子角速度
+* $\omega_e$ 表示电气角速度（等于转子角速度乘以极对数）
 * $\psi_d$ 和 $\psi_q$ 分别表示d轴和q轴的磁链.
 
-上面的两个公式都有三部分组成：第一项表示电阻造成的压降；第二项表示电感造成的压降；第三项表示磁链变化造成的电压变化。前两相比较好理解，这里主要解释一下第三项。
+上面的两个公式都有三部分组成：第一项表示电阻造成的压降；第二项表示电感造成的压降；第三项表示磁链变化造成的电压变化。前两相比较好理解，这里主要解释一下第三项。可参见图2以理解电压方程。
+
+法拉第电磁感应定律的公式如下：
+
+$E = -\frac{d\phi}{dt}$
+
+在这个公式中，$E$ 表示感应电动势，$\frac{d\phi}{dt}$表示磁通量的变化率。负号表示了感应电动势的方向与磁通量变化的方向相反，这符合了能量守恒的原则。根据法拉第电磁感应定律，当磁通量在一个导体中产生变化时，会在导体中产生感应电动势，进而产生感应电压。
 
 在电气机械系统中，电动机的磁场与电流、转子位置等之间存在耦合关系。当永磁同步电机的转子运动导致磁链的变化时，根据法拉第电磁感应定律，这将导致在电机绕组中产生电动势，从而产生感应电压。这就是磁链变化引起的电压变化。
 
+磁链（magnetic flux linkage）是磁通量概念的推广，它是对穿过线圈或元件的磁通量（magnetic flux）进行积分得到的量。磁链是磁通量与线圈的绕组数的乘积，表示通过线圈的总磁通量。数学上，磁链（Ψ）可以表示为：
 
+ $\Psi = N \cdot \Phi$
+
+其中，Ψ是磁链，N是线圈的匝数，Φ是磁通量。
+
+磁通（magnetic flux）是磁感应强度在某个给定的面积或导体横截面上的总和，通常用Φ表示。它是磁感应线的数量。磁通量的单位是韦伯（Weber），表示单位时间内通过一个给定面积的磁通量。磁链通常用于描述电磁装置中电流和磁场之间的关系，而磁通则用于描述在给定的横截面上穿过的总磁感应线的数量。
 
 然后是磁链方程（文中先交代磁链方程）：
 
@@ -153,7 +169,115 @@ $\begin{equation}  \psi_q = L_q i_q \end{equation}$
 
 在永磁同步电机中，d轴和q轴所表示的是电机的两个正交轴。因为永磁体产生的磁场是固定的，与电流无关，所以永磁体产生的磁链$\psi_m$只会影响与永磁体磁场方向一致的轴，即d轴。对于d轴，永磁体的磁链会与电流产生的磁链相叠加，所以d轴的磁链方程中会有一项永磁体的磁链$\psi_m$。而对于q轴来说，永磁体的磁链与电流产生的磁链方向是正交的，所以永磁体的磁链不会影响q轴的磁链方程。
 
+当磁通量穿过线圈发生变化时，根据法拉第电磁感应定律，线圈中就会产生感应电流。这些感应电流产生的磁场又会产生一个反向的磁通量，从而抵消外部磁场的影响，这就是所谓的反电动势。这种现象可以解释为磁感线的“想要”穿过线圈，然而线圈中感应电流产生的磁场则产生了一个相反的磁力，试图阻止外部磁感线的穿透。这一理论既有助于我们理解电磁感应现象，也是许多电磁设备工作原理的基础。
+
+第三个是转矩方程：
+
+$ T_e = \frac{P}{\omega_e} = \frac{\frac{3}{2} p_n (V_d I_d + V_q I_q)}{\omega_e} $
+
+上面的方程中$p_n$表示极对数，$V_d$和$V_q$表示d轴和q轴的电压分量，$I_d$和$I_q$表示d轴和q轴的电流分量，$\omega_e$表示电气角速度（等于转子角速度乘以极对数），$T_e$表示电机的转矩。
+
+如果将磁链方程代入上面的公式：
+
+$\begin{equation}  T_e = \frac{3}{2} p_n ( (L_d - L_q) i_d i_q  + \psi_m i_q  ) \end{equation}$
+
+在这个公式中，( T_e ) 代表电磁转矩， ( p_n ) 代表电机的极对数， ( \psi_m ) 代表磁链， ( L_d ) 和 ( L_q ) 分别代表 d 轴和 q 轴的电感， ( i_d ) 和 ( i_q ) 分别代表 d 轴和 q 轴的电流。
+
+最后是运动方程：
+
+$ J\frac{d\omega_{\text{mech}}}{dt} = T_e - T_l -  B\cdot\omega_{\text{mech}} $
+在这个方程中，
+* $J$ 代表转动惯量
+* $\omega_{\text{mech}}$ 代表机械角速度
+* $T_e$ 代表电磁转矩
+* $T_l$ 代表负载转矩
+* $B$ 代表系统的黏滞摩擦阻尼
+
+此外还需要注意到这里的$\omega_{\text{mech}}$和前面提到的$\omega_e$是不同的。前面提到的$\omega_e$是转子电气角速度，而这里的$\omega_{\text{mech}}$是机械角速度。两者的关系是：
+
+$\omega_{\text{mech}} = p_n \omega_e$
+
+
+上面的公式可以这样理解电磁转矩产生了三个效果：一个是提供了负载转矩（带动负载转动）; 另一个是克服了摩擦阻尼（减少了转子的转动速度）; 第三个是产生了机械角速度（使得电机转动起来）。
+
+我们将上面的公式变形一下：
+$\begin{equation}  T_e = T_l + B\cdot\omega + J\frac{d\omega}{dt} \end{equation}$
+
+<font color=red>上面的公式和原书并不一样。我认为原书中公式有一定的问题。</font>比如转矩方程中$V_d i_d - $V_q i_q$本来应当是$V_d i_d + $V_q i_q$。本文对这几个公式的使用也没有说明。相当于直接把公式列出来，没有说明要怎么用。
+
+另外，关于PMSM的数学公式，可以查看MathWorks的PMSM文档。我在附录中给出了相关链接。
+这里将mathworks的pmsm电机数学模型转载如下。
+* 电压方程：
+
+    $V_d = i_d R_s  + \frac{d\lambda_d}{dt} - \omega_e L_q i_q $
+
+    $ V_q = i_q R_s  + \frac{d\lambda_q}{dt} + \omega_e L_d i_d + \omega_e \lambda_{pm} $
+
+* 磁链方程：
+
+    $\lambda_d = L_d i_d + \lambda_{pm} $
+    
+    $\lambda_q = L_q i_q $
+
+* 转矩方程：
+
+    $T_e = \frac{3}{2} p (\lambda_{pm} i_q +  (L_d - L_q) i_d i_q ) $
+
+* 运动方程：
+
+    $ T_e - T_l = J\frac{d\omega_m}{dt}  +  B\cdot\omega_m $
+
+其中：
+
+* $V_d$ 是 d 轴电压（伏特）
+* $V_q$ 是 q 轴电压（伏特）
+* $i_d$ 是 d 轴电流（安培）
+* $i_q$ 是 q 轴电流（安培）
+* $R_s$ 是定子相绕组电阻（欧姆）
+* $\lambda_{pm}$ 是永磁磁链（韦伯）
+* $\lambda_d$ 是 d 轴磁链（韦伯）
+* $\lambda_q$ 是 q 轴磁链（韦伯）
+* $\omega_e$ 是对应于定子电压频率的电角速度（弧度/秒）
+* $\omega_m$ 转子机械转速（弧度/秒）
+* $L_d$ 是 d 轴绕组电感（亨）
+* $L_q$ 是 q 轴绕组电感（亨）
+* $T_e$ 是 PMSM 产生的机电转矩 (Nm)
+* $T_l$ 是负载转矩 (Nm)
+* $p$ 是电机极对数
+* $J$ 是惯量系数 (kg-$m^2$)
+* $B$ 是摩擦系数 (kg-$m^2$/秒)
+
+这里的公式和书中的公式稍微不同，但基本上是相同的含义。比如电压方程直接引入了磁链方程。感觉没有本书中原来的公式简洁。
+
+另一点需要说明的是$R_s$是以Y形导体为例的定子电阻。如果是以$\Delta$形导体为例，则$R_s$应当是等效变换之后的电阻。
+
+**负载转矩**：
+关于负载转矩这个量我纠结了很久。按照公式，这个量应该是一个和转动惯量没有关系的量。也就是它的存在不改变固有的转动惯量。其实我在最初的理解中有意无意的将它和转动行为分开，后来忽然想清楚了，原来自己钻了牛角尖。负载转矩当然就是负载产生的转矩，没有什么大惊小怪的。它的存在当然没有改变转动惯量，除非你刚好将负载直接固定在轴上转动。那么问题来了，皮带、链条在世纪工作中有没有改变转动惯量。当然有。但是皮带上的负载却没有。比如传送带上面的箱子。
+感兴趣的可以看东方电机对于负载转矩的解释，我将其放在附录中。
+
+
+
+## 概念说明
+* 弱磁控制： 当您使用 FOC 算法让电机以额定磁通运行时，最大转速受定子电压、额定电流和反电动势的限制。此转速称为基转速。若超出此转速，机器的运行就会变得复杂，因为反电动势大于供电电压。但是，如果您将 d 轴定子电流 (Id) 设置为负值，则转子磁链会减小，从而使电机以高于基转速的转速运行。这种操作称为电机的弱磁控制。见下图：
+![弱磁控制示意](img/mathworks_fwc_control_intro.png)
+<p style="text-align:center; color:orange">图x：弱磁控制运作示意图</p>
+
+* 直接转矩控制:  直接转矩控制(DTC) 是一种矢量电机控制方法，它通过直接控制电机的磁通和转矩来实现电机转速控制。与控制 d 和 q 轴电机电流的磁场定向控制 (FOC) 不同，DTC 算法根据电机位置和电流估计转矩和磁通值。然后，它使用 PI 控制器来控制电机转矩和磁通，最终生成运行电机的最佳电压。见下图：
+![直接转矩控制示意](img/mathworks_dtc_algorithm.png)
+<p style="text-align:center; color:orange">图x：DTC控制示意图</p>
 
 
 ## 附录
 * [无刷直流电机、有刷直流电机：该如何选择？](https://www.monolithicpower.cn/cn/brushless-vs-brushed-dc-motors)
+* [Mathworks PMSM](https://www.mathworks.com/help/sps/ref/pmsm.html)
+* [Mathworks PMSM Overview](https://ww2.mathworks.cn/help/mcb/pmsm.html?searchHighlight=PMSM&s_tid=srchtitle_support_results_4_PMSM)
+* [Mathworks FOC](https://ww2.mathworks.cn/help/mcb/gs/implement-motor-speed-control-by-using-field-oriented-control-foc.html)
+* [Mathworks Field weakening control](https://ww2.mathworks.cn/help/mcb/gs/field-weakening-control-mtpa-pmsm.html)
+* [Mathworks Field weakening control 2](https://ww2.mathworks.cn/discovery/field-weakening-control.html?s_tid=srchtitle_support_results_10_MTPA)
+* [Mathworks MTPA control](https://ww2.mathworks.cn/help/mcb/ref/mtpacontrolreference.html)
+* [直接转矩控制 (DTC)](https://ww2.mathworks.cn/help/mcb/gs/direct-torque-control-dtc.html)
+* [自抗扰控制](https://ww2.mathworks.cn/help/slcontrol/ug/active-disturbance-rejection-control.html)
+* [Surface Mount PMSM](https://ww2.mathworks.cn/help/mcb/ref/surfacemountpmsm.html)
+* [超越 PID：探索磁场定向控制器的替代控制策略](https://ww2.mathworks.cn/campaigns/offers/field-oriented-control-techniques-white-paper.html)
+* [PMSM Constraint Curves and Their Application](https://ww2.mathworks.cn/help/mcb/gs/pmsm-constraint-curves-and-their-application.html)
+* [东方电机关于负载转矩的解释](https://www.orientalmotor.com.cn/qa_det/qa_application/qa_41bl/)
