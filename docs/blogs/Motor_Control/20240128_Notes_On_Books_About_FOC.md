@@ -64,16 +64,194 @@ PI环节的输出是电流$i_d$和$i_q$
 
 #### 1.4.4 Park反变换
 
+$\begin{bmatrix} V_\alpha \\ V_\beta \end{bmatrix} = \begin{bmatrix} \cos(\theta) & -\sin(\theta) \\ \sin(\theta) & \cos(\theta) \end{bmatrix} \begin{bmatrix} V_d \\ V_q \end{bmatrix} $
+
+其中:
+* $V_\alpha$和$V_\beta$是电压在$\alpha$和$\beta$方向上的分量
+* $V_d$和$V_q$是电压在$d$和$q$方向上的分量
+* $\theta$是转子位置信息（电气角度）
+
 #### 1.4.5 Clarke反变换
+因为Clarke变换的时候是从三维（非正交）转到二维，在反变换时不能直接求逆矩阵。此时就需要做一些特殊的规定。比如A轴（A相电压所在的方向）和$\alpha$轴重合，B轴和C轴相位依次延迟120度。采用投影法可以依次计算出$V_\alpha$和和$V_\beta$在A、B、C三个方向上的分量。
+
+$  \begin{bmatrix} V_A \\ V_B \\ V_C \end{bmatrix} = \begin{bmatrix}  1 & 0 \\ \ -\frac{1}{2} & \frac{\sqrt{3}}{2} \\ -\frac{1}{2} & -\frac{\sqrt{3}}{2} \end{bmatrix} \begin{bmatrix} V_\alpha \\ V_\beta \end{bmatrix} $
+
+其中:
+* $V_\alpha$和$V_\beta$是电压在$\alpha$和$\beta$方向上的分量
+* $V_A$, $V_B$, $V_C$是电压在A、B、C三个方向上的分量
+
+Clarke变换并不直接使用。实际上使用SVPWM来将期望的$V_\alpha$和$V_\beta$转换为A、B、C三相的PWM占空比。
 
 #### 1.4.6 SVPWM
+SVPWM和SPWM一样，都属于脉宽调制技术的一种。除了死区时间内上下管都关断之外，其余的时间里上下管只能有一个开通另一个关断，这样没一相都有两种状态。总共8中状态。其中三相上管全部导通，下管全部关断时三相电流为0。同样的三相下管全部导通，上管全部关断时三相电流为0。这两种状态的电压矢量是零矢量，除此之外的6种状态的矢量可以用ABC三相的导通状态代替（若上管导通下官关断记做1,相反记做0.），这样100, 110, 010，011, 001, 101这6种状态的电压矢量依次相差60度。他们之间的区域分别记做I区，II区，III区， IV区，V区，VI区。（本书叫做1～6区，只是个记号，没什么大不了的。
+![矢量表](img/book1_form_4-1.jpeg)
+<p style="text-align:center; color:orange">图1：矢量表</p>
 
-配图4.26有错误，本来应该是五段式，但是配图是七段式。七段式有$V_0$和$V_7$两个零向量成分，但是五段式只有$V_0$。此时在一个周期内总有一相是始终关断的（占空比为零）。
+![扇区图](img/book1_img_4-25.jpeg)
+<p style="text-align:center; color:orange">图2：扇区图</p>
 
-102页的公式也出现很多错误。稍后一齐更正到下面。
+对于本图需要说明一下：
+* $V_{n}$的n是ABC三相按照顺序组成的一个二进制数，比如A轴上的矢量$V_4$其实就是我们前面讲的100状态的电压矢量。
+* 两个矢量之间的三角形区域可以用$\vec{v_{n1}} p_1 + \vec{v_{n2} p_2}$组合表示.其中$ 1>=p_1 > 0, 1>=p_2 > 0$。 当$p_1+p_2=1$时，$\vec{v_{n1}} p_1 + \vec{v_{n2} p_2}$就组成了边长。证明方法很简单。以扇区1为例，你可以在$V_4$上选择某一点x,做一个$V_6$的平行线，长度等于$V_4$的全长减去x到原点的距离。这样这个向量和x到$V_4$的顶点组成一个等边三角形。这个新的矢量的顶点正好位于扇区1这个等边三角形的一边上。
+* 可以求解出这个正六变形的内切圆半径。这个内切圆就是合成的最大矢量圆。如果比这个矢量圆更大的矢量圆就超出了正六变形的范围。这也意味着比这个矢量圆更大的矢量圆是不能靠两个相邻矢量合成的。这个矢量圆的最大半径是$V \sin{60\degree}$。其中$V$是合成的三相电压幅值。如果$V_M$表示桥连接的电机电压，则$V = \frac{2}{3} V_M$。若$V_R$表示矢量圆半径则$V_R = \frac{V_M}{\sqrt{3}}$。至于原因可以看第二本书中关于中性点和三相合成矢量和的计算。
+
+![矢量圆半径](img/book1_img_4-38.jpeg)
+<p style="text-align:center; color:orange">图3：矢量圆半径</p>
+
+这六种状态下参考点（Y形连接的中性点）N的电压可能是$\frac{1}{3}V_M$（当只有1相接$V_M$, 另外2相接地）,或者$\frac{2}{3}V_M$（当只有2相接$V_M$, 另外1相接地）。
+![中性点电压图](img/book1_img_4-26.jpeg)
+<p style="text-align:center; color:orange">图4：中性点电压图</p>
+
+SVPWM就是相邻两个电压矢量在时间上的线性组合，合成所需的角度和大小的电压矢量。（不是两个矢量同时叠加，而是分时叠加。）实际上除了相邻的两相电压矢量之外还要在一个周期内计算上零矢量。
+
+为了方便的表达矢量合成（相邻矢量和零矢量在一个周期中的不同时间分别起作用），控制器一般会提供中心对齐的PWM以方便矢量合成。常见的有**七段式PWM**和**五段式PWM**。
+下面6张图依次是转子电气角度位于扇区1（I）到6（VI）之间不同的七段式PWM.
+![扇区1七段式PWM示意图](img/Book1_sector_1.jpeg)
+<p style="text-align:center; color:orange">图5：扇区1七段式PWM示意图</p>
+
+![扇区2七段式PWM示意图](img/Book1_sector_2.jpeg)
+<p style="text-align:center; color:orange">图6：扇区2七段式PWM示意图</p>
+
+![扇区3七段式PWM示意图](img/Book1_sector_3.jpeg)
+<p style="text-align:center; color:orange">图7：扇区3七段式PWM示意图</p>
+
+![扇区4七段式PWM示意图](img/Book1_sector_4.jpeg)
+<p style="text-align:center; color:orange">图8：扇区4七段式PWM示意图</p>
+
+![扇区5七段式PWM示意图](img/Book1_sector_5.jpeg)
+<p style="text-align:center; color:orange">图9：扇区5七段式PWM示意图</p>
+
+![扇区6七段式PWM示意图](img/Book1_sector_6.jpeg)
+<p style="text-align:center; color:orange">图10：扇区6七段式PWM示意图</p>
+
+原书中<font color=red>配图4.36有错误，本来应该是五段式，但是配图是七段式。</font>
+七段式有$V_0$和$V_7$两个零向量成分，但是五段式只有$V_0$。此时在一个周期内总有一相是始终关断的（占空比为零）。
+
+<font color=red>102页和105页的公式也出现很多错误。稍后一齐更正到下面。</font>
+
+知道了扇区的矢量组成，还需要根据转子电气角度计算出A,B,C三相的占空比。在下面几个公式中$D_A$, $D_B$, $D_C$分别是A,B,C相的占空比，$D_{V0}$到$D_{V7}分别表示8种矢量的占空比。$V_1'$到$V_6'$根据$V_\alpha$和$V_\beta$计算得到的不同扇区的矢量组合。在扇区1中，由$V_4'$和$V_6'合成。下面的公式是求解三相占空比的公式：
+
+* $V_6' = \frac{2}{\sqrt{3}}V_\beta$
+* $V_4' = V_\alpha - \frac{V_\beta}{\sqrt{3}}$
+* $D_{V4} = \frac{V_4'}{V_R} = \frac{V_\alpha - \frac{V_\beta}{\sqrt{3}}}{\frac{2}{3}V_M}$
+* $D_{V6} = \frac{V_6'}{V_R} = \frac{\frac{2}{\sqrt{3}}V_\beta}{\frac{2}{3}V_M}$
+
+零向量D0和D7平均分配占用时长，所以：
+
+* $D_{v7} = \frac{1 - D_{V4} - D_{V6}}{2}$
+* $D_C = D_{v7}$
+* $D_B = D_{v7} + D_{V6}$
+* $D_A = D_{v7} + D_{V6} + D_{V4}$
+
+关于$V_4'$和$V_6'$的求解比较简单，从矢量$V_6'$的顶端向$V_4$做一根垂线作为辅助线即可。
+
+扇区2的计算稍微有些技巧，可以查看下图。从向量顶点向$V_6$做一根平行于$V_2$的辅助线即可。
+![扇区2占空比计算图](img/book1_img_4-40.jpeg)
+<p style="text-align:center; color:orange">图11：扇区2占空比计算图</p>
+
+因为$\tan{60 \degree} = \frac{V_\beta}{V_\alpha + V_2'}$,所以可以求得：
+* $V_2' = \frac{V_\beta}{\sqrt{3}} - V_\alpha$
+
+因为$\sin{60 \degree} = \frac{V_\beta}{V_6' + V_2'}$,所以可以求得：
+* $V_6' = \frac{V_\beta}{\sqrt{3}} + V_\alpha$
+* $D_{V2} = \frac{V_2'}{V_R} = \frac{\frac{V_\beta}{\sqrt{3}} - V_\alpha}{\frac{2}{3}V_M}$
+* $D_{V6} = \frac{V_6'}{V_R} = \frac{\frac{V_\beta}{\sqrt{3}} + V_\alpha}{\frac{2}{3}V_M}$
+
+零向量D0和D7平均分配占用时长，所以：
+
+* $D_{v7} = \frac{1 - D_{V6} - D_{V2}}{2}$
+* $D_C = D_{v7}$
+* $D_A = D_{v7} + D_{V6}$
+* $D_B = D_{v7} + D_{V6} + D_{V2}$
+
+之后扇区3和扇区1只是符号相反求解过程一致，扇区4和扇区3,扇区6和扇区1, 扇区5和扇区2对称，$V_\beta$的符号取反即可$。下列一次列出：
+
+* $V_2' = \frac{2}{\sqrt{3}}V_\beta$
+* $V_3' = -V_\alpha - \frac{V_\beta}{\sqrt{3}}$
+* $D_{V2} = \frac{V_2'}{V_R} = \frac{\frac{2}{\sqrt{3}}V_\beta}{\frac{2}{3}V_M}$
+* $D_{V3} = \frac{V_3'}{V_R} = \frac{-V_\alpha - \frac{V_\beta}{\sqrt{3}}}{\frac{2}{3}V_M}$
+* $D_{v7} = \frac{1 - D_{V2} - D_{V3}}{2}$
+* $D_A = D_{v7}$
+* $D_C = D_{v7} + D_{V3}$
+* $D_B = D_{v7} + D_{V3} + D_{V2}$
+
+对于扇区4则有：
+* $V_1' = -\frac{2}{\sqrt{3}}V_\beta$
+* $V_3' = -V_\alpha + \frac{V_\beta}{\sqrt{3}}$
+* $D_{V1} = \frac{V_1'}{V_R} = \frac{-\frac{2}{\sqrt{3}}V_\beta}{\frac{2}{3}V_M}$
+* $D_{V3} = \frac{V_3'}{V_R} = \frac{-V_\alpha + \frac{V_\beta}{\sqrt{3}}}{\frac{2}{3}V_M}$
+* $D_{v7} = \frac{1 - D_{V3} - D_{V1}}{2}$
+* $D_A = D_{v7}$
+* $D_B = D_{v7} + D_{V3}$
+* $D_C = D_{v7} + D_{V3} + D_{V1}$
+
+对于扇区5则有：
+* $V_1' = -\frac{V_\beta}{\sqrt{3}} - V_\alpha$
+* $V_5' = -\frac{V_\beta}{\sqrt{3}} + V_\alpha$
+* $D_{V1} = \frac{V_1'}{V_R} = \frac{-\frac{V_\beta}{\sqrt{3}} - V_\alpha}{\frac{2}{3}V_M}$
+* $D_{V5} = \frac{V_5'}{V_R} = \frac{-\frac{V_\beta}{\sqrt{3}} + V_\alpha}{\frac{2}{3}V_M}$
+* $D_{v7} = \frac{1 - D_{V1} - D_{V5}}{2}$
+* $D_B = D_{v7}$
+* $D_A = D_{v7} + D_{V5}$
+* $D_C = D_{v7} + D_{V5} + D_{V1}$
+
+对于扇区6则有：
+* $V_5' = -\frac{2}{\sqrt{3}}V_\beta$
+* $V_4' = V_\alpha + \frac{V_\beta}{\sqrt{3}}$
+* $D_{V5} = \frac{V_6'}{V_R} = \frac{-\frac{2}{\sqrt{3}}V_\beta}{\frac{2}{3}V_M}$
+* $D_{V4} = \frac{V_4'}{V_R} = \frac{V_\alpha + \frac{V_\beta}{\sqrt{3}}}{\frac{2}{3}V_M}$
+* $D_{v7} = \frac{1 - D_{V5} - D_{V4}}{2}$
+* $D_B = D_{v7}$
+* $D_C = D_{v7} + D_{V5}$
+* $D_A = D_{v7} + D_{V5} + D_{V4}$
 
 
+#### 1.4.7 启动算法
+三步启动算法的基本流程是：
+1. 先给定一个确定角度的电压矢量，利用一个恒定的电流强制转子对其
+2. 待转子稳定后逐步旋转电压矢量，让转子开始旋转。随着转子越来越快，达到预定转速后，电机产生了足够大的反电动势，即正常进入位置估计。
+3. 这时就可以用位置估计信号取代先前的开换位置信号，即进入无感FOC的正常工作状态。
 
+#### 1.4.8 无感位置估计算法（$E_d = 0$, PLL控制）
+无感位置估计算法有很多种，各有优劣。建议初学者将精力放在成熟可靠的算法中。对于技术论文所提出的新思路，新方法，可以作为开阔眼界只用。
+
+锁相环控制是一种广泛应哟你的技术。它通过比较两个信号的相位得到相位差，然后对相位差进行PI调节，输出速度信号。之后对速度信号积分得到相位信息，进而改变相位以消除相位差。这是一个反馈控制过程。积分有滤除高频噪声的作用，可以让位置信息更平滑，连续。可以看到，速度信息是由PI调节器直接给出的，不需要使用传统的位置查分方式获取。但是需要注意当电机转速是目标转速的整数倍时，也可能被锁相，此时就会发生误同步。为了避免这种情况，就需要将检测到的转速作为电机是否正常运行的标准。
+
+<font color=red>109页提供的电压方程我认为有错误。可参考第二本书或者Mathworks提供的电压方程。</font>我们以Mathworks的电压方程为例。假定旋转基本稳定，$i_d$和$i_q$几乎恒定（在时间上的变化量微小忽略不计），根据磁连方程则$\lambda_d$和$\lambda_q$这两项可以忽略。
+
+* 电压方程：
+
+    $V_d = i_d R_s  + \frac{d\lambda_d}{dt} - \omega_e L_q i_q \approx  i_d R_s  - \omega_e L_q i_q $
+
+    $ V_q = i_q R_s  + \frac{d\lambda_q}{dt} + \omega_e L_d i_d + \omega_e \lambda_{pm} \approx i_q R_s  + \omega_e L_d i_d + \omega_e \lambda_{pm} $
+
+其中$\lambda_{pm}$是电机的永磁磁链。$\omega_e \lambda_{pm}$可以等于反电动势。因此书中的公式符号可能错误。$\omega_e L_d i_d$前面为加号。
+
+你可能对反电动势的和永磁磁链有疑问。那需要你查看附件中“反电动势常数和永磁磁链关系”的文章。这篇文章提出反电动势常数和永磁磁链基本是同一回事。而反电动势$E = k_e \cdot \omega$,其中E是反电动势，$k_e$是反电动势常数。注意转速\omega应该是电角转速。既然反电动势常数和永磁磁链是一回事，那么反电动势也可以用永磁磁链来表示：$E = \lambda_{pm} \cdot \omega$。
+
+```txt
+反电动势系数和永磁体磁链其实表征同一个概念，指电机旋转时，磁链产生电动势相对于转速的比例关系，反电动势系数kv的单位为V.s/rad，而永磁体磁链单位为Wb，两个单位可以互相转化。
+```
+
+这部分基本讲了当$V_d$产生误差后，d轴的电压方程就变成了：
+
+$V_d \approx i_d R_s - \omega_e L_q i_q + E_d = i_d R_s + \omega_e L_q i_q + E_d  = i_d R_s - \omega_e L_q i_q + E \sin(\theta_{err})$
+
+而根据q轴的电压方程可以得知：$ V_q  \approx i_q R_s  + \omega_e L_d i_d + E $ 所以：
+
+$E \approx  V_q - i_q R_s - \omega_e L_d i_d $ 
+
+因为误差很小时$\sin(\theta_{err}) \approx \theta_{err}$这样我们就可以求得角度误差:
+
+$ \theta_{err} \approx sin(\theta_{err}) = \frac{V_d - i_d R_s + \omega_e L_q i_q}{V_q - i_q R_s - \omega_e L_d i_d } $
+
+因为是负反馈，所以要记得在进行控制时$\theta_{err}$要取反。
+
+![锁相环原理图之1](img/LPL_arch_1.jpeg)
+<p style="text-align:center; color:orange">图1：锁相环控制原理</p>
+
+![锁相环原理图之1](img/LPL_detail_2.jpeg)
+<p style="text-align:center; color:orange">图2：锁相环转子位置误差修正调节原理</p>
 
 ## 二. 《深入理解无刷直流电机矢量控制技术》，上官致远/张健， ISBN 978-7-03-065510-3
 本书借阅于深圳科技图书馆，作者上官致远和张健。本书正文总共118页。分为10个章节。本书印刷质量较好，全书配彩图。本书示例用到的是STM32F40X系列单片机。目前此单片机价格适中。考虑到对ST单片机相对更加熟练，可能会在后期使用STM32单片机制作自己的开发板。本书从电机原理、方波控制原理、矢量控制原理、SVPWM原理和测速原理、电机参数测量等多方面讲解了无刷电机的控制。相比于《无感FOC入门指南》本书的理论讲解更加细致，有助于理解矢量控制的原理。编程实践部分较少，但也有一些示例代码。本书对无感FOC稍有讲解，但是重点在于传统的FOC技术。
@@ -393,3 +571,5 @@ $  U_{out}= \frac{2}{3} U_{dc} e^{j\omega_e t} $
 * [超越 PID：探索磁场定向控制器的替代控制策略](https://ww2.mathworks.cn/campaigns/offers/field-oriented-control-techniques-white-paper.html)
 * [PMSM Constraint Curves and Their Application](https://ww2.mathworks.cn/help/mcb/gs/pmsm-constraint-curves-and-their-application.html)
 * [东方电机关于负载转矩的解释](https://www.orientalmotor.com.cn/qa_det/qa_application/qa_41bl/)
+
+* [反电动势常数和永磁磁链关系](https://aijishu.com/a/1060000000315874)
