@@ -1,20 +1,8 @@
+
 ---
 title: Notes on Books about FOC (2024)
 permalink: /MC/notes_on_books_about_FOC/
 ---
-
-<!-- <head>
-    <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML" type="text/javascript"></script>
-    <script type="text/x-mathjax-config">
-        MathJax.Hub.Config({
-            tex2jax: {
-            skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
-            inlineMath: [['$','$']]
-            }
-        });
-    </script>
-</head> -->
-
 
 # 2024年FOC相关书籍阅读笔记
 之前关于FOC的学习过于碎片化，关于FOC讲解的很多概念都没有系统性的梳理，因此，我打算系统性的整理一下相关的书籍，并记录一下自己的理解。
