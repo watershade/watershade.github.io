@@ -1,8 +1,17 @@
-
 ---
 title: Notes on Books about FOC (2024)
 permalink: /MC/notes_on_books_about_FOC/
 ---
+
+<script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML" type="text/javascript"></script>
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+        tex2jax: {
+        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+        inlineMath: [['$','$']]
+        }
+    });
+</script>
 
 # 2024年FOC相关书籍阅读笔记
 之前关于FOC的学习过于碎片化，关于FOC讲解的很多概念都没有系统性的梳理，因此，我打算系统性的整理一下相关的书籍，并记录一下自己的理解。
@@ -48,13 +57,13 @@ permalink: /MC/notes_on_books_about_FOC/
 这部分描述了Clarke变换，Park变换。本质是坐标变化，使用投影的方法可计算矩阵具体数值。
 
 Clarke等幅变换公式：
-$ \begin{bmatrix} I_{\alpha} \\ I_{\beta} \ \end{bmatrix}  = \frac{2}{3}\begin{bmatrix} 1 & -\frac{1}{2} & -\frac{1}{2} \\ 0 & \frac{\sqrt{3}}{2} & -\frac{\sqrt{3}}{2} \ \end{bmatrix} \begin{bmatrix} I_a \\ I_b \\ I_c \\ \end{bmatrix}$
+$$ \begin{bmatrix} I_{\alpha} \\ I_{\beta} \ \end{bmatrix}  = \frac{2}{3}\begin{bmatrix} 1 & -\frac{1}{2} & -\frac{1}{2} \\ 0 & \frac{\sqrt{3}}{2} & -\frac{\sqrt{3}}{2} \ \end{bmatrix} \begin{bmatrix} I_a \\ I_b \\ I_c \\ \end{bmatrix} $$
 
 Clarke等功率变换公式：
-$ \begin{bmatrix} I_{\alpha} \\ I_{\beta} \ \end{bmatrix}  = \sqrt{\frac{2}{3}}\begin{bmatrix} 1 & -\frac{1}{2} & -\frac{1}{2} \\ 0 & \frac{\sqrt{3}}{2} & -\frac{\sqrt{3}}{2} \ \end{bmatrix} \begin{bmatrix} I_a \\ I_b \\ I_c \\ \end{bmatrix}$
+$$ \begin{bmatrix} I_{\alpha} \\ I_{\beta} \ \end{bmatrix}  = \sqrt{\frac{2}{3}}\begin{bmatrix} 1 & -\frac{1}{2} & -\frac{1}{2} \\ 0 & \frac{\sqrt{3}}{2} & -\frac{\sqrt{3}}{2} \ \end{bmatrix} \begin{bmatrix} I_a \\ I_b \\ I_c \\ \end{bmatrix} $$
 
 Park变换公式：
-$\begin{bmatrix} I_d \\ I_q \end{bmatrix} = \begin{bmatrix} \cos(\theta) & \sin(\theta) \\ -\sin(\theta) & \cos(\theta) \end{bmatrix} \begin{bmatrix} I_\alpha \\ I_\beta \end{bmatrix}$
+$$ \begin{bmatrix} I_d \\ I_q \end{bmatrix} = \begin{bmatrix} \cos(\theta) & \sin(\theta) \\ -\sin(\theta) & \cos(\theta) \end{bmatrix} \begin{bmatrix} I_\alpha \\ I_\beta \end{bmatrix} $$
 
 #### 1.4.3 PI调节
 PID控制是控制学的基础。这部分不再完全转述，只说明一些注意事项。
@@ -65,7 +74,7 @@ PI环节的输出是电流$i_d$和$i_q$
 
 #### 1.4.4 Park反变换
 
-$\begin{bmatrix} V_\alpha \\ V_\beta \end{bmatrix} = \begin{bmatrix} \cos(\theta) & -\sin(\theta) \\ \sin(\theta) & \cos(\theta) \end{bmatrix} \begin{bmatrix} V_d \\ V_q \end{bmatrix} $
+$$ \begin{bmatrix} V_\alpha \\ V_\beta \end{bmatrix} = \begin{bmatrix} \cos(\theta) & -\sin(\theta) \\ \sin(\theta) & \cos(\theta) \end{bmatrix} \begin{bmatrix} V_d \\ V_q \end{bmatrix} $$
 
 其中:
 * $V_\alpha$和$V_\beta$是电压在$\alpha$和$\beta$方向上的分量
@@ -75,8 +84,7 @@ $\begin{bmatrix} V_\alpha \\ V_\beta \end{bmatrix} = \begin{bmatrix} \cos(\theta
 #### 1.4.5 Clarke反变换
 因为Clarke变换的时候是从三维（非正交）转到二维，在反变换时不能直接求逆矩阵。此时就需要做一些特殊的规定。比如A轴（A相电压所在的方向）和$\alpha$轴重合，B轴和C轴相位依次延迟120度。采用投影法可以依次计算出$V_\alpha$和和$V_\beta$在A、B、C三个方向上的分量。
 
-$  \begin{bmatrix} V_A \\ V_B \\ V_C \end{bmatrix} = \begin{bmatrix}  1 & 0 \\ \ -\frac{1}{2} & \frac{\sqrt{3}}{2} \\ -\frac{1}{2} & -\frac{\sqrt{3}}{2} \end{bmatrix} \begin{bmatrix} V_\alpha \\ V_\beta \end{bmatrix} $
-
+$$  \begin{bmatrix} V_A \\ V_B \\ V_C \end{bmatrix} = \begin{bmatrix}  1 & 0 \\ \ -\frac{1}{2} & \frac{\sqrt{3}}{2} \\ -\frac{1}{2} & -\frac{\sqrt{3}}{2} \end{bmatrix} \begin{bmatrix} V_\alpha \\ V_\beta \end{bmatrix} $$
 其中:
 * $V_\alpha$和$V_\beta$是电压在$\alpha$和$\beta$方向上的分量
 * $V_A$, $V_B$, $V_C$是电压在A、B、C三个方向上的分量
@@ -222,9 +230,9 @@ SVPWM就是相邻两个电压矢量在时间上的线性组合，合成所需的
 
 * 电压方程：
 
-    $V_d = i_d R_s  + \frac{d\lambda_d}{dt} - \omega_e L_q i_q \approx  i_d R_s  - \omega_e L_q i_q $
+    $$ V_d = i_d R_s  + \frac{d\lambda_d}{dt} - \omega_e L_q i_q \approx  i_d R_s  - \omega_e L_q i_q $$
 
-    $ V_q = i_q R_s  + \frac{d\lambda_q}{dt} + \omega_e L_d i_d + \omega_e \lambda_{pm} \approx i_q R_s  + \omega_e L_d i_d + \omega_e \lambda_{pm} $
+    $$ V_q = i_q R_s  + \frac{d\lambda_q}{dt} + \omega_e L_d i_d + \omega_e \lambda_{pm} \approx i_q R_s  + \omega_e L_d i_d + \omega_e \lambda_{pm} $$
 
 其中$\lambda_{pm}$是电机的永磁磁链。$\omega_e \lambda_{pm}$可以等于反电动势。因此书中的公式符号可能错误。$\omega_e L_d i_d$前面为加号。
 
@@ -236,15 +244,15 @@ SVPWM就是相邻两个电压矢量在时间上的线性组合，合成所需的
 
 这部分基本讲了当$V_d$产生误差后，d轴的电压方程就变成了：
 
-$V_d \approx i_d R_s - \omega_e L_q i_q + E_d = i_d R_s + \omega_e L_q i_q + E_d  = i_d R_s - \omega_e L_q i_q + E \sin(\theta_{err})$
+$$ V_d \approx i_d R_s - \omega_e L_q i_q + E_d = i_d R_s + \omega_e L_q i_q + E_d  = i_d R_s - \omega_e L_q i_q + E \sin(\theta_{err}) $$
 
 而根据q轴的电压方程可以得知：$ V_q  \approx i_q R_s  + \omega_e L_d i_d + E $ 所以：
 
-$E \approx  V_q - i_q R_s - \omega_e L_d i_d $ 
+$$ E \approx  V_q - i_q R_s - \omega_e L_d i_d $$
 
 因为误差很小时$\sin(\theta_{err}) \approx \theta_{err}$这样我们就可以求得角度误差:
 
-$ \theta_{err} \approx sin(\theta_{err}) = \frac{V_d - i_d R_s + \omega_e L_q i_q}{V_q - i_q R_s - \omega_e L_d i_d } $
+$$ \theta_{err} \approx sin(\theta_{err}) = \frac{V_d - i_d R_s + \omega_e L_q i_q}{V_q - i_q R_s - \omega_e L_d i_d } $$
 
 因为是负反馈，所以要记得在进行控制时$\theta_{err}$要取反。
 
@@ -327,11 +335,11 @@ $ \begin{bmatrix} U_{\alpha} \\ U_{\beta} \ \end{bmatrix}  = \frac{2}{3}\begin{b
 
 前面的Clarke变换不仅对电流如此（对于电压也同样如此），三相对称电压的幅度Um转换之后的幅度也是$\frac{3}{2}U_m$.不带系数直接转换后到s2的P的$\alpha$和$\beta$的幅度就是$\frac{9}{4}U_m*I_m$.总功率是$\alpha$和$\beta$之和$\frac{9}{2}U_m*I_m$。原先三相对称电压的每一相的幅度$U_m*I_m$，三相总和是$3U_m*I_m$.因此转换后的幅度是原来幅度的$\frac{3}{2}$倍。因此功率的修正参数$\frac{2}{3}$，具体到无论电流或者电压关系中就需要求根号即电流或者电压的转换矩阵的系数是$\sqrt{\frac{2}{3}}$:
 
-$ \begin{bmatrix} I_{\alpha} \\ I_{\beta} \ \end{bmatrix}  = \sqrt{\frac{2}{3}}\begin{bmatrix} 1 & -\frac{1}{2} & -\frac{1}{2} \\ 0 & \frac{\sqrt{3}}{2} & -\frac{\sqrt{3}}{2} \ \end{bmatrix} \begin{bmatrix} I_a \\ I_b \\ I_c \\ \end{bmatrix}$
+$$ \begin{bmatrix} I_{\alpha} \\ I_{\beta} \ \end{bmatrix}  = \sqrt{\frac{2}{3}}\begin{bmatrix} 1 & -\frac{1}{2} & -\frac{1}{2} \\ 0 & \frac{\sqrt{3}}{2} & -\frac{\sqrt{3}}{2} \ \end{bmatrix} \begin{bmatrix} I_a \\ I_b \\ I_c \\ \end{bmatrix} $$ 
 
 或
 
-$ \begin{bmatrix} U_{\alpha} \\ U_{\beta} \ \end{bmatrix}  = \sqrt{\frac{2}{3}}\begin{bmatrix} 1 & -\frac{1}{2} & -\frac{1}{2} \\ 0 & \frac{\sqrt{3}}{2} & -\frac{\sqrt{3}}{2} \ \end{bmatrix} \begin{bmatrix} U_a \\ U_b \\ U_c \\ \end{bmatrix}$
+$$ \begin{bmatrix} U_{\alpha} \\ U_{\beta} \ \end{bmatrix}  = \sqrt{\frac{2}{3}}\begin{bmatrix} 1 & -\frac{1}{2} & -\frac{1}{2} \\ 0 & \frac{\sqrt{3}}{2} & -\frac{\sqrt{3}}{2} \ \end{bmatrix} \begin{bmatrix} U_a \\ U_b \\ U_c \\ \end{bmatrix} $$
 
 从S3转换到S2之后，电流关系还是没有解耦。还需要Park变换将其从S2转换到R2。即从$\alpha-\beta$坐标系转换到$d-q$坐标系。其中$d-q$坐标系是一个和$\omega$同步旋转的坐标系，无论电流还是电压在d-q坐标系中都是常数，两者完全解耦。
 
