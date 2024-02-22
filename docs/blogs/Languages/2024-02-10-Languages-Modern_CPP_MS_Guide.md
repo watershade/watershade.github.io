@@ -24,6 +24,29 @@ C++ 标准库提供了三种智能指针类型：`std::unique_ptr`、`std::share
 
 智能指针的详细信息可以看[这里的描述](https://learn.microsoft.com/zh-cn/cpp/cpp/smart-pointers-modern-cpp?view=msvc-170).
 
+别忘了，智能指针需要添加头文件<momery>.
+
+### 1.2 std::string和std::string_view
+C样式的字符串时bug的另一个来源。c++标准库的string类和C++17引入的只读权限的string_view为字符串读写带来了更安全的操作。而且功能更强大。
+
+### 1.3 vector和其它容器
+使用标准库容器。
+vector
+map
+unordered_map
+
+### 1.4 标准库算法
+
+
+### 1.5 使用auto代替显式声明？
+对于模板类，auto非常有用。
+
+
+### 1.6 优先使用constexpr，避免使用宏
+
+
+### 1.7 
+
 
 
 
