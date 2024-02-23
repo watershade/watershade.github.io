@@ -2,6 +2,7 @@
 ---
 title: The Index of Pages about PMSM Motor Control
 permalink: /Collection/Hello_AUTOSAR/
+sitemap: false
 ---
 
 
