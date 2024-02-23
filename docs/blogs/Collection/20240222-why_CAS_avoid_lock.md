@@ -1,6 +1,7 @@
 ---
 title: The Index of Pages about PMSM Motor Control
 permalink: /Collection/WHY_CAS_AVOID_LOCK/
+sitemap: false
 ---
 
 # CAS（Compare and Swap）为何能避免死锁
