@@ -1,5 +1,6 @@
 ---
 title: CAN-FD的位定时的思考
+category: CAN-FD
 permalink: /CAN_FD/Bit_Timing/
 ---
 
