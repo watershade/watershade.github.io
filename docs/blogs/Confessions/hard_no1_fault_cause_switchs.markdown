@@ -1,6 +1,8 @@
 ---
 title: Fault Cause Switch
-permalink: /Collection/confession_fault_cause_switch/
+category: Confessions
+date: 2024-01-27
+permalink: /Confessions/confession_fault_cause_switch/
 ---
 
 # Confession of Hardware No.1 —— Fault cause switch

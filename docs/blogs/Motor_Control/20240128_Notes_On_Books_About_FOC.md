@@ -1,5 +1,7 @@
 ---
 title: Notes on Books about FOC (2024)
+categories: [Motor Control]
+date: 2024-02-05
 permalink: /MC/notes_on_books_about_FOC/
 ---
 

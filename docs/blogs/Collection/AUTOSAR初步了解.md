@@ -1,6 +1,8 @@
 
 ---
 title: The Index of Pages about PMSM Motor Control
+category: Collection
+date: 2024-01-30
 permalink: /Collection/Hello_AUTOSAR/
 sitemap: false
 ---

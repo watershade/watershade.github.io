@@ -1,5 +1,7 @@
 ---
 title: Learning from Project ALOHA 2
+date: 2024-01-29
+category: StarProj
 permalink: /StarProj/Learning_from_Project_ALOHA_2/
 ---
 

@@ -1,5 +1,7 @@
 ---
 title: ROS2读书笔记 (1)
+date: 2024-01-28
+categories: ROS2
 permalink: /ROS2/ROS2_Books_Reading_Note_1/
 ---
 

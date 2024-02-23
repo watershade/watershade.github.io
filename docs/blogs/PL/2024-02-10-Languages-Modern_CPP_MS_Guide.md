@@ -1,6 +1,8 @@
 ---
 title: Modern CPP MicroSoft Guideline
-permalink: /Languages/modern_cpp_microsoft_guide/
+categories: [Programming Language]
+date: 2024-02-10
+permalink: /PL/modern_cpp_microsoft_guide/
 ---
 
 # Modern CPP MicroSoft Guideline

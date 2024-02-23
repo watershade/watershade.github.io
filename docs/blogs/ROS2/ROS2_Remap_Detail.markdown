@@ -1,5 +1,7 @@
 ---
 title: ROS2的Remap机制详解
+date: 2024-01-28
+categories: ROS2
 permalink: /ROS2/The_Detail_Of_Remap/
 ---
 

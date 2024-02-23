@@ -1,5 +1,7 @@
 ---
 title: Rapberry Pi 4 安装VxWorks笔记
+date: 2024-01-28
+categories: ROS2
 permalink: /ROS2/How_To_Install_Vxworks_On_PRI4/
 ---
 

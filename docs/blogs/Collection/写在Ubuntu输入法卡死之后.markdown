@@ -1,5 +1,7 @@
 ---
 title: 写在Ubuntu输入法卡死之后
+category: Collection
+date: 2024-01-26
 permalink: /Collection/when_ibus_is_stuck/
 ---
 

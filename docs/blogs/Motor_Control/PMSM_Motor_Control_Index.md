@@ -1,5 +1,7 @@
 ---
 title: The Index of Pages about PMSM Motor Control
+categories: [Motor Control]
+date: 2024-02-03
 permalink: /MC/PMSM_Control_Index/
 ---
 

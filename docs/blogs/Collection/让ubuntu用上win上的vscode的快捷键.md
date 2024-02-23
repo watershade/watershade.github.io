@@ -1,5 +1,7 @@
 ---
 title: 让ubuntu用上win上的vscode的快捷键
+category: Collection
+date: 2024-02-02
 permalink: /Collection/let_ubuntu_use_win_vscode_keybindings/
 ---
 

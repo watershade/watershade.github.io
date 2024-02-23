@@ -1,5 +1,7 @@
 ---
 title: Note About MQTT
+categories: Networks
+date: 2024-01-28
 permalink: /Networks/Note_About_MQTT/
 ---
 

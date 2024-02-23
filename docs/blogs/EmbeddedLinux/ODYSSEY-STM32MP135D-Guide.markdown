@@ -1,6 +1,8 @@
 ---
 title: About ODYSSEY STM32MP135D
-permalink: /ODYSSEY-STM32MP135D/index/
+categories: [Embedded Linux]
+date: 2024-01-09
+permalink: /EL/ODYSSEY-STM32MP135D-Guide/
 ---
 
 # ODYSSEY STM32MP135D

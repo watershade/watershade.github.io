@@ -1,5 +1,7 @@
 ---
 title: ROS2 Humble学习笔记 (2)
+date: 2024-01-28
+categories: ROS2
 permalink: /ROS2/ROS2_Humble_Learning_Note_2/
 ---
 

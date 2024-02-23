@@ -1,5 +1,7 @@
 ---
 title: Robot Motion Planning Knowledge Collection
+date: 2024-01-28
+categories: ROS2
 permalink: /ROS2/Motion_Planning_Collection/
 ---
 

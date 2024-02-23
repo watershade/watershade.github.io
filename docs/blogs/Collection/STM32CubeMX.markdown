@@ -1,5 +1,7 @@
 ---
 title: STM32CubeMX的Ubuntu桌面图标生成脚本
+category: Collection
+date: 2024-01-25
 permalink: /Collection/CUbeMX_Icon_In_Ubuntu/
 ---
 

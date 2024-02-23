@@ -1,5 +1,7 @@
 ---
 title: The Index of Pages about PMSM Motor Control
+category: Collection
+date: 2024-02-22
 permalink: /Collection/WHY_CAS_AVOID_LOCK/
 sitemap: false
 ---

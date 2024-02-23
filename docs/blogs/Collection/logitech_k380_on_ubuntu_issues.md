@@ -1,5 +1,7 @@
 ---
 title: logitech k380键盘在ubuntu上的问题和解决方案
+category: Collection
+date: 2024-02-01
 permalink: /Collection/logitech_k380_on_ubuntu_issues/
 ---
 
