@@ -2,7 +2,7 @@
 title: You should use external resistor for STM32 UART Signle Wire
 categories: MCU
 date: 2024-01-11
-permalink: /MCU/STM32_UART_Signle_Wire/
+permalink: /MCU/STM32_UART_Single_Wire/
 ---
 
 
