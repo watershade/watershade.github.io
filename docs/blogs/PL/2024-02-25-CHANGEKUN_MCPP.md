@@ -2,7 +2,7 @@
 title: Modern CPP MicroSoft Guideline
 categories: [Programming Language]
 date: 2024-02-10
-permalink: /PL/modern_cpp_microsoft_guide/
+permalink: /PL/CHANGEKUN_MCPP/
 ---
 
 # ChangKun的Modern C++学习教程笔记
@@ -84,7 +84,10 @@ auto add(T x, U y) {
     return x + y;
 }
 ```
+ 
+ * decltype(auto) : 是c++14引入的一个略微复杂的用法。主要用来对转发函数或者封装的返回类型进行推导。它使得我们无需显示的指定decltype的参数表达式。
 
+### 2.4 控制流
 
 
 
