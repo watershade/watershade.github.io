@@ -30,20 +30,27 @@ title: Catalog
 * [ROS2 Humble学习笔记 (2)](/ROS2/ROS2_Humble_Learning_Note_2/)
 * [Rapberry Pi 4 安装VxWorks笔记](/ROS2/How_To_Install_Vxworks_On_PRI4/)
 
-## STM32 Knowledge
-* [STM32CubeMX的图标生成脚本](./Collection/CUbeMX_Icon_In_Ubuntu)
-* [STM32U5的UART单线通讯上拉电阻问题](/STM32/UART_Signle_Wire/)
+## MCU Knowledge
+* [STM32CubeMX的图标生成脚本](/Collection/CUbeMX_Icon_In_Ubuntu/)
+* [STM32U5的UART单线通讯上拉电阻问题](/MCU/STM32_UART_Single_Wire/)
 
 ## CAN FD Knownledge
-* [CAN FD位定时的思考](./CAN_FD/Bit_Timing/)
+* [CAN FD位定时的思考](/CAN_FD/Bit_Timing/)
 
-## ODYSSEY-STM32MP135D
-* [ODYSSEY-STM32MP135D主页](./ODYSSEY-STM32MP135D/index)
+## Motor Control
+* [FOC相关书籍阅读笔记](/MC/notes_on_books_about_FOC/)
+
+## Programming Language
+* [ChangKun的Modern C++学习教程笔记](./PL/CHANGEKUN_MCPP/)
 
 ## Collection
-
 * [写在Ubuntu输入法卡死之后](./Collection/when_ibus_is_stuck)
 
+## Confessions
+* [失误集/硬件-01/因为一个开关引起的故障](/Confessions/confession_fault_cause_switch/)
+
+## Network
+* [MQTT协议笔记](/Networks/Note_About_MQTT/)
 
 ## About
 [关于本网站的实现](../about/)
