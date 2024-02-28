@@ -134,8 +134,128 @@ int main()
 #### 2.4.2 基于范围的for循环
 区间for迭代：C++11引入了range-based for循环，终于实现了类似与python那样简洁的代码。关于基于范围的for迭代可参见[微软关于range-based for的介绍](https://learn.microsoft.com/zh-cn/cpp/cpp/range-based-for-statement-cpp?view=msvc-170).基本语法是`for (for-range-declaration:expression)`. 请注意，在语句的 for-range-declaration 部分中，auto 关键字是首选的。如果你看微软的相关章节会发现`const auto&`这样的写法，这是因为在C++17中，`const auto&`可以用来声明一个常量引用。也需要明确一点形如`for(auto y: x)`的写法并不会修改x的值。如果需要修改x的值应该使用形如`for(auto& y: x)`使用引用的写法。
 
-
 ### 2.5 模板
+C++ 的模板是这门语言的一种特殊的艺术。模板的哲学在于将一切能够在编译期处理的问题丢到编译期进行处理，仅在运行时处理那些最核心的动态服务，进而大幅优化运行期的性能。
+
+#### 2.5.1 外部模板
+传统C++中，模板只有在使用时才会被编译器实例化。但是主要每个编译单元（文件）中编译的代码遇到了完整定义的模板，都会被实例化。这就产生了重复实例化的问题。这个问题导致了编译时间的增加。为此Modern C++引入了外部模板，扩充了原来的强制编译器实例化模板的语法，使得我们能够显式的通知编译器何时进行模板的实例化。（其实就是添加extern关键字。）示例如下：
+```cpp
+template class std::vector<bool>; // 显式（强制）实例化
+extern template class std::vector<double>; // 不再改当前编辑文件中实例化模板 
+```
+
+关于模板的详细指示可以查看[微软关于模板的介绍](https://learn.microsoft.com/zh-cn/cpp/cpp/templates-cpp?view=msvc-170).
+
+模板类中的尖括号">"要特别注意。在传统C++中，可以强制在嵌套模板的两个`>`之间添加空格，否则会出错。但是从C++11开始，连续的右尖括号`>`将是被允许的。
+
+#### 2.5.2 类型别名模板
+C++中`类型（Type）`和`模板（Template）`是两个完全不同单容易混淆的东西。"模板"是一种代码的组织工具，用于生成特定类型或值的代码实例，而"类型"是数据的抽象分类，用于指定数据的内部表示和操作方式。"模板"指的是一种通用的代码框架，它可以用一个或多个类型或值作为参数，在编译时被实例化为特定的类、函数或其他代码实体。在传统C++中,可以使用`typedef`来定义一个类型，但是去不能用它来定义一个模板。
+
+#### 2.5.3 变长参数模板
+在传统C++中，无论是类模板还是函数模板都只能接收股东数量的模板参数；但在C++11中加入了新的表示方法： 允许任意个数、任意类别的模板参数，同事也不需要在定时将参数个数固定。这就是变长参数模板。形式大体如下：
+
+```cpp
+// 变长函数模板
+template<typename... Args>
+void foo(Args... args) {
+    // do something with args
+}
+
+foo(1, 2.0, "hello"); // 调用foo函数，传入三个参数
+
+// 变长类模板
+template<typename... Args>
+class Magic <>{
+    // do something with args
+};
+
+class Magic<int, double, std::string> m; // 实例化Magic类模板，传入三个参数
+
+// 甚至可以是0个模板参数
+class Magic<> m2; // 实例化Magic类模板，没有参数
+
+// 若要避免0个模板参数的歧义，可以先定义一个模板参数：
+template<typename T, typename... Args> 
+class Magic_2 {
+    // do something with args
+};
+
+class Magic_2<int> m3; // 这样就限制了模板至少有一个参数
+
+函数也可以类似定义
+
+template<typename... Args>
+void print(const std::string& s, Args... args);
+
+print("hello", 1, 2.0); // 调用print函数，传入两个参数
+
+template<typename... Args>
+auto func_args_num(Args... args) {
+    auto n = sizeof...(args); // 计算参数个数
+    return n;
+}
+
+``` 
+但是对于变长参数模板的展开到目前为止仍然没有一种简单的方法。目前有两种方式：
+1. 递归模板函数法：通过递归调用模板函数，将参数分解为多个参数，直到终止递归的函数。在C++17之前，递归模板方式一般要定义两个函数，其中一个负责展开终止递归函数，另一个负责展开剩余参数。非常繁琐。自C++17以后，可通过利用`if constexpr`和`sizeof...`来实现对终止递归函数的条件编译。这样就只需要定义一个函数。事实上我们尽管使用了变参模板，却不一定需要对参数做逐个遍历，可以利用std::bind及完美转发等特性实现对函数和参数的兵丁，从而达到成功调用的目的。
+
+2. 初始化列表展开法：这种方法利用了初始化列表(std::initializer_list)和lambda表达式。语法比较费解，如下：
+
+```cpp
+template<typename T, typename... Args>
+void my_printf(T value, Args... args) {
+    std::cout << value << std::endl;
+    (void) std::initializer_list<T> {
+        ([&args]{std::cout << args << std::endl;}(),value)...
+    };
+}
+``` 
+
+<font color=red>上面的代码我暂时还不能理解。</font>
+
+除此之外，C++17中还将变长参数的特性带给了表达式：
+```cpp
+template<typename... Args>
+auto sum(Args... args) {
+    return (args +...); // 表达式模板
+}
+
+int main() {
+    std::cout << sum(1, 2, 3, 4, 5) << std::endl; // 输出15
+    return 0;
+}
+``` 
+可以看到通过这种方式让迭代操作变得非常简单。
+
+
+#### 2.5.4 非类型模板参数
+类型模板传入的是具体类型，例如：
+```cpp
+template<typename T, typename U>
+auto add(T a, U b) {
+    return a + b;
+}
+``` 
+
+
+而非类型模板参数传入的是可以是变量、表达式、函数调用等，例如：
+```cpp
+template<typename T, int N>
+void print_array(T (&arr)[N]) {
+    for (int i = 0; i < N; ++i) {
+        std::cout << arr[i] << " ";
+    }
+    std::cout << std::endl;
+}
+```
+
+
+
+
+
+
+
+
 
 
 
