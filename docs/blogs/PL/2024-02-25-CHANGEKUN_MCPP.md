@@ -37,6 +37,8 @@ TODO: 稍后提供方法
 TODO: 稍后提供方法
 
 ## 二、教程第二章笔记
+第二章的标题是“语言可用性的强化”。这里的“语言可用性”是指发生在运行时之前的语言特性。
+
 ### 2.1 常量
 
 #### 2.1.1 空指针
@@ -237,7 +239,6 @@ auto add(T a, U b) {
 }
 ``` 
 
-
 而非类型模板参数传入的是可以是变量、表达式、函数调用等，例如：
 ```cpp
 template<typename T, int N>
@@ -249,11 +250,128 @@ void print_array(T (&arr)[N]) {
 }
 ```
 
+### 2.6 面向对象
 
+#### 2.6.1 委托构造
+C++11引入了委托构造，可以将构造函数委托给另一个构造函数，从而简化构造函数的编写。
 
+#### 2.6.2 继承构造
+C++11引入了继承构造，可以继承父类的构造函数，从而简化子类的构造函数编写。
 
+#### 2.6.3 显式虚函数重载
+在传统C++中经常容易发生意外重载虚函数的事情。或者当虚函数在基类中删除之后，子类拥有的旧的函数就不再重载此虚函数，而变成了一个普通类方法。这可能造成灾难性的后果。
 
+C++11引入了`override`和final关键字，可以显式的指示编译器对虚函数进行重载。`override`关键字用于指示编译器检查函数签名是否正确，`final`关键字用于指示编译器不再对此函数进行重载。
 
+* `override`: 重载虚函数时，使用`override`显式的告知编译器进行重载。编译器将检查基函数是否存在与要重载的目标函数一致的虚函数。如果不存在将无法编译。示例如下：
+```cpp
+struct Base {
+    virtual void foo(int);
+};
+
+struct SubClass : Base {
+    virtual void foo(int) override {/*do something*/}; // 合法
+    virtual void foo(float) override {/*do something*/}; // 非法，签名不匹配
+};
+```
+
+* `final`: `final`则是为了防止类被继续继承以及终止虚函数继续重载引入的。声明函数为`final`时，编译器将不再对此函数进行重载。示例如下：
+```cpp
+struct Base {
+    virtual void foo() final;
+};
+
+struct SubClass1 final : Base {}; // 合法，子类声明为final
+
+struct subClass2 : subClass1 {}; // 非法，子类声明为final
+
+struct SubClass3 : Base {
+    virtual void foo() override {/*do something*/}; // 非法，父类中声明为final
+};
+```
+
+#### 2.6.4 显式禁用默认函数
+在传统C++中，如果程序员没有提供，编译器会默认为对象生成默认构造函数、析构函数、复制构造和赋值运算符。另外C++也定义了诸如new delete这样的运算符。当程序员有需要时，可以重载这部分函数。用户想要精确控制默认函数行为一般需要将不需要的函数声明为private。而且用户默认的构造函数和用户定义的构造函数不可以共存。C++11引入了更强大的功能，允许显式的声明采用或者拒绝构造函数。例如：
+```cpp
+class MyClass {
+public:
+    MyClass() = default; // 采用默认构造函数    
+    MyClass& operator=(const MyClass&) = delete; // 拒绝复制构造函数
+    MyClass(int x) : data(x) {} // 定义构造函数
+};
+```
+
+#### 2.6.5 强类型枚举
+C++11引入了枚举类(enumeration class),并使用`enum class`语法进行声明。文中提到传统的C++中枚举类型不是类型安全的。两个不同的枚举类型可直接进行比较。同一个命名空间内两个不同模具类型的枚举值不能重名。C++11中使用`enum class`可以解决这些问题。枚举类用法示例：
+```cpp
+enum class Color : unsigned char{ RED, GREEN, BLUE };
+```
+文中给出了一段很费解的代码：
+```cpp
+#include <iostream>
+template<typename T>
+std::ostream& operator<<(
+    typename std::enable_if<std::is_enum<T>::value,
+        std::ostream>::type& stream, const T& e)
+{
+    return stream << static_cast<typename std::underlying_type<T>::type>(e);
+}
+```
+
+### 2.7 习题解答
+
+#### 2.7.1 第一题
+
+* 问题： 使用结构化绑定，仅用一行函数内代码实现如下函数：
+
+template <typename Key, typename Value, typename F>
+void update(std::map<Key, Value>& m, F foo) {
+    // TODO:
+}
+int main() {
+    std::map<std::string, long long int> m {
+        {"a", 1},
+        {"b", 2},
+        {"c", 3}
+    };
+    update(m, [](std::string key) {
+        return std::hash<std::string>{}(key);
+    });
+    for (auto&& [key, value] : m)
+        std::cout << key << ":" << value << std::endl;
+}
+
+* 解答：
+本题的难点即使不是答案，而是问题本身。问题本身的语法有很多关键点。`std::map<Key, Value>`,`std::hash`和lambda表达式这三个语法点还是要理解一下的。问题的简单描述其实应该是如何在update函数中添加一行代码，实现用hash值取代每个key原有的value。
+```cpp
+for (auto&& [key, value] : m) value = foo(key);
+```
+答案也很简单，就是将value用foo函数的计算结果代替。foo函数在main函数中传入，用来返回一个hack code。答案的另一个重点是`auto&& [key, value] : m`，这里用了两个`&`,而不是一个。这是因为不但需要对键值对解引用，还需要能够修改值。
+
+#### 2.7.2 第二题
+* 问题： 尝试用折叠表达式实现用于计算均值的函数，传入允许任意参数。
+* 答案：这个问题和示例中的求sum类似。指示需要使用`sizeof...`，我尝试将`sizeof...`赋值给一个变量，然后使用`if constexpr`去判断是否为0。结果发现不能通过编译。正确答案如下（和原来的答案稍有出入）：
+```cpp
+#include <iostream>
+#include <type_traits>
+
+template<typename ... Ts>
+auto average(Ts ... args) {
+	if constexpr (sizeof...(args) > 0) {
+		return ((args + ...) / sizeof...(args));
+	}
+	else {
+		return 0;
+	}
+}
+
+int main() {
+		std::cout << average(1, 2, 3, 4, 5, 7, 8) << std::endl; // 3
+		return 0;
+}
+```
+
+## 三、教程第三章笔记
 
 
 
