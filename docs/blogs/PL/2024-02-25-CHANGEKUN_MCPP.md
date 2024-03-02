@@ -372,20 +372,274 @@ int main() {
 ```
 
 ## 三、教程第三章笔记
+### 3.1 Lambda表达式
+现代语言比如python，rust之类都有lambda表达式。C++11引入了lambda表达式，可以用来创建匿名函数。lambda表达式可以捕获外部变量，也可以作为函数参数。lambda表达式的语法如下：
+```cpp
+[capture](parameters) mutable(optional)  -> return-type { function-body }
+```
+其中，capture可以捕获列表；parameters表示函数的参数；mutable表示函数是否可以修改捕获的变量，可选；return-type表示函数的返回类型，使用的是我们之前描述的尾返回类型。这里重点讲一下捕获列表`[capture]`。捕获列表可以理解未parameter的一种类型。Lambda表达式内部函数体默认情况下式不能够使用函数体外部的变量的，这时候捕获列表就可以起到传递外部数据的作用。捕获列表有四种形式：值（value）捕获、引用（reference）捕获、隐式捕获、表达式捕获。
 
+* 值捕获：与参数传值类似（值捕获的前提式变量可以拷贝）。<font color=red>被捕获的变量在Lambda表达式被创建时拷贝，而非调用时才拷贝。</font>示例如下：
+```cpp
+void lambda_value_capture() {
+    int value = 1;
+    auto copy_value = [value] {
+        return value;
+    };
+    value = 100;
+    auto stored_value = copy_value();
+    std::cout << "stored_value = " << stored_value << std::endl;
+    // 这时, stored_value == 1, 而 value == 100.
+    // 因为 copy_value 在创建时就保存了一份 value 的拷贝
+}
+```
+上面的代码示例中请注意没有用std::cout直接输出copy_value的值。这是因为copy_value实际是一个函数对象，调用它不会执行函数体，而是返回一个类似函数指针一样的东西。后面的文章这样描述："Lambda 表达式的本质是一个和函数对象类型相似的类类型（称为闭包类型）的对象（称为闭包对象）， 当 Lambda 表达式的捕获列表为空时，闭包对象还能够转换为函数指针值进行传递".
 
+* 引用捕获：与引用传参类似，引用捕获保存的时引用，值会发生变化。可以和值捕获做个比较。示例如下：
+```cpp
+void lambda_reference_capture() {
+    int value = 1;
+    auto copy_value = [&value] {
+        return value;
+    };
+    value = 100;
+    auto stored_value = copy_value();
+    std::cout << "stored_value = " << stored_value << std::endl;
+    // 这时, stored_value == 100, value == 100.
+    // 因为 copy_value 保存的是引用
+}
+```
+请注意这里引用捕获使用的符号`&`，和普通的参数引用类似。
 
+* 隐式捕获：编译器使用隐式捕获可以自动捕获外部变量。隐式捕获常见有五种形式：
+    * [] 空捕获列表
+    * [name1, name2, ...] 捕获一系列变量
+    * [&name1, &name2, ...] 捕获一系列变量的引用
+    * [=] 值捕获列表，让编译器自动推导值捕获列表
+    * [&] 引用捕获，让编译器自行推导引用列表
 
+但编译器根据什么样的规则自行推导。文章没有讲解。
 
+* 表达式捕获：前面三种形式捕获的均是左值，而不能捕获右值。C++14中引入了表达式捕获功能，使其可以捕获右值。示例如下：
+```cpp
+#include <iostream>
+#include <memory>  // std::make_unique
+#include <utility> // std::move
 
+void lambda_expression_capture() {
+    auto important = std::make_unique<int>(1);
+    auto add = [v1 = 1, v2 = std::move(important)](int x, int y) -> int {
+        return x+y+v1+(*v2);
+    };
+    std::cout << add(3,4) << std::endl;
+}
+```
+在上面的important式一个独占指针，是不能被`=`运算符捕获的。这时候我们需要使用`std::move`将其转移成右值，在表达式中初始化。
 
+```txt
+右值引用是 C++11 引入的新概念，用于表示对临时对象或将要销毁的对象的引用。它在语义上区别于左值引用，可以用于启用移动语义、完美转发以及构造临时对象等操作。右值引用的语法是在类型名称后添加两个连续的 & 符号（&&）。通过声明一个右值引用，可以将其绑定到临时对象或将要销毁的对象，从而在这些对象上执行移动操作，以提高性能并避免不必要的复制。
+```
 
+在C++14之后，lambda表达式也支持`auto`关键字从而具备了泛型的功能。（Lambda表达式不能能被模板化）示例如下：
+```cpp
+auto add = [](auto x, auto y) {
+    return x+y;
+};  
 
+add(1, 2); // 3
+add(1.0, 2.0); // 3.0
+add("hello", "world"); // helloworld
+```
 
+```txt
+在C++中，“闭包类型”通常指的是lambda表达式（lambda expressions）的类型，而“闭包对象”是指lambda表达式创建的可调用对象（callable object）。Lambda表达式是C++11引入的功能，用于创建匿名函数对象。闭包类型指的是lambda表达式的类型，而闭包对象是指lambda表达式创建的函数对象，可以像函数一样被调用。
+```
 
+### 3.2 函数对象包装器
+文中专门提到这一点“这部分内容虽然属于标准库的一部分，但是从本质上来看，它却增强了 C++ 语言运行时的能力， 这部分内容也相当重要，所以放到这里来进行介绍。”
+实际上这部分讲解的内容，是许多初学C++的人所不知道的。
 
+#### 3.2.1 std::function
+在文中作者先使用一个example描述了lambda表达式表示的匿名函数分别被作为函数类型和函数被使用。在C++11中，统一了两者的改变：将能够被调用的对象的类型通常为可调用类型。而这种类型可以通过`std::function` 来表示。文中有这样一段总结：
+```txt
+C++11 std::function 是一种通用、多态的函数封装， 它的实例可以对任何可以调用的目标实体进行存储、复制和调用操作， 它也是对 C++ 中现有的可调用实体的一种类型安全的包裹（相对来说，函数指针的调用不是类型安全的）， 换句话说，就是函数的容器。当我们有了函数的容器之后便能够更加方便的将函数、函数指针作为对象进行处理。
+```
+或者有稍微清晰一点的描述：
+```txt
+std::function是C++标准库中的一个模板类，用于封装可调用对象，例如函数、函数指针、成员函数指针或者lambda表达式。它提供了一种通用的方式来存储、传递和调用任意可调用对象，从而使得代码更加灵活、可复用和可扩展。
+```
+听着像是互联网黑话。基本上可以归纳为“通用”，“安全”和“灵活”。其实最好的理解方式还是看代码。请注意`std::function`的头文件是`<functional>`。
 
+#### 3.2.2 std::bind和std::placeholders
+std::bind 是 C++ 标准库中的一个函数，它用于创建一个函数对象，这个函数对象可以将原始函数的参数绑定到特定的数值上。std::placeholders 是 C++ 标准库中用于占位符的命名空间，它提供了一系列预定义的占位符，用于在使用函数对象时指定需要绑定的参数位置。我们可以使用 std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, ... 以此类推，来指定绑定参数列表中对应的位置。
 
+#### 3.2.3 右值引用
+在前面讲解lambda表达式的时候，我已经替代过右值引用。但是通过那段描述。还是挺晕的。这一段作者对右值引用做了详细说明：
+```txt
+右值引用是 C++11 引入的与 Lambda 表达式齐名的重要特性之一。它的引入解决了 C++ 中大量的历史遗留问题， 消除了诸如 std::vector、std::string 之类的额外开销， 也才使得函数对象容器 std::function 成为了可能。
+```
+文中对涉及的几个名词做了专门的解释，确实让人有所领悟：
+* 左值 (lvalue, left value)： 顾名思义就是赋值符号左边的值。准确来说， 左值是表达式（不一定是赋值表达式）后依然存在的持久对象。
+* 右值 (rvalue, right value)： 右边的值，是指表达式结束后就不再存在的临时对象。请注意右值要么是一个纯右值，要么是一个将亡值。
+* 字面量 (literal)： 字面量就是直接写在代码中的值，例如 10, "hello", 3.14, true 等。
+* 纯右值 (prvalue, pure rvalue)： 纯粹的右值，要么是纯粹的字面量，例如 10, true； 要么是求值结果相当于字面量或匿名临时对象，例如 1+2。非引用返回的临时变量、运算表达式产生的临时变量、原始字面量、 Lambda 表达式都属于纯右值。需要注意的是，字面量除了字符串字面量以外，均为纯右值。而字符串字面量是一个左值，类型为 const char 数组。<font color=red>但是注意，数组可以被隐式转换成相对应的指针类型，而转换表达式的结果（如果不是左值引用）则一定是个右值（右值引用为将亡值，否则为纯右值）。</font>这一部分的描述是否费解。在我测试`decltype(101)`之类的表达式时，发现也是能编译的。也就是说此时的字面值其实被当作了表达式，从而被转换成了左值？
+* 将亡值 (xvalue, expiring value)： 也是 C++11 为了引入右值引用而提出的概念（因此在传统 C++ 中， 纯右值和右值是同一个概念），也就是即将被销毁、却能够被移动的值。（<font color=red>就是说如果这个值没有被移动就会被销毁？</font>）
+
+在作者进行讲解时，用到了`static_cast`.这里简单对它进行一些说明。static_cast 是 C++ 中用于执行显式类型转换的操作符。它可以将一个表达式转换为指定的类型，包括用户定义的类型、内置类型和其他类型。static_cast 在编译时执行类型检查，并且通常用于较为安全的类型转换操作。static_cast 是在编译时执行类型转换，不进行运行时检查。它主要用于执行较为安全的类型转换，例如基本类型之间的转换、向上转型或者非多态类的类型转换。static_cast 在执行类型转换时不进行运行时类型检查，因此转换的安全性需要程序员自行确保。而 dynamic_cast 则是在运行时执行类型转换，它可以用于执行安全的向下转型（将指向基类对象的指针或引用转换为指向派生类对象的指针或引用），并进行运行时类型检查，以确保类型转换的安全性。dynamic_cast 只能在存在虚函数的类层次结构中进行类型转换，用来处理多态类型的转换。
+
+在作者进行讲解时，还用到了`static_assert`. static_assert 是 C++11 引入的关键字，用于在编译时进行静态断言（Static Assertion）。它允许在编译时对某些条件进行检查，如果条件为假，则导致编译失败并显示错误消息。static_assert 的语法形式如下：
+```cpp
+static_assert (constant_expression, "error message");
+```
+static_assert 只能用于在编译时进行常量表达式的验证，不能用于运行时条件的检查。因此，它适用于那些只需在编译期就能确定的条件检查，例如类型大小的验证、常量的合法性检查等。
+
+要拿到一个将亡值，就需要用到右值引用：`T &&`，其中 T 是类型。 右值引用的声明让这个临时值的生命周期得以延长、只要变量还活着，那么将亡值将继续存活。C++11 提供了 std::move 这个方法将左值参数无条件的转换为右值， 有了它我们就能够方便的获得一个右值临时对象.
+
+作者举了一段代码：
+```cpp
+#include <iostream>
+#include <string>
+
+void reference(std::string& str) {
+    std::cout << "lvalue" << std::endl;
+}
+void reference(std::string&& str) {
+    std::cout << "rvalue" << std::endl;
+}
+
+int main()
+{
+    std::string  lv1 = "string,";       // lv1 is a lvalue
+    // std::string&& r1 = lv1;           // illegal, rvalue can't ref to lvalue
+    std::string&& rv1 = std::move(lv1); // legal, std::move can convert lvalue to rvalue
+    std::cout << rv1 << std::endl;      // string,
+    
+    const std::string& lv2 = lv1 + lv1; // legal, const lvalue reference can extend temp variable's lifecycle
+    // lv2 += "Test";                   // illegal, const ref can't be modified
+    std::cout << lv2 << std::endl;      // string,string
+    
+    std::string&& rv2 = lv1 + lv2;      // legal, rvalue ref extend lifecycle
+    rv2 += "string";                    // legal, non-const reference can be modified
+    std::cout << rv2 << std::endl;      // string,string,string,
+    
+    reference(rv2);                     // output: lvalue
+    
+    return 0;
+}
+```
+
+这段代码似乎十分简单。但是结果让人很费解。第一'reference(rv2)'为什么使出的是`lvalue`。其次使用`std::move(lv1)`将lv1的所有权转移给了`rv1`.如果再对`lv1`操作，似乎是对`rv1`操作了。比如如果我在`std::string&& rv1 = std::move(lv1);`之后，尝试`lv1.assign("newstr1")`。这时候rv1的信息也相应的变化了。第三，如果像程序一样使用`const std::string& lv2 = lv1 + lv1;`是能够编译的。但是如果改成"std::string& lv2 = lv1 + lv1;"就会报错。
+
+请注意上面的代码中`lv1`和`lv1 + lv1`的语义有很大的区别。前者是一个现存的变量，后者会生成一个临时变量。临时变量的生命周期很短，而右值引用延长了它的声明周期。
+
+#### 3.2.4 移动语义
+
+作者在“移动语义”这一段编写了一段很有意思的代码，很好的展示了构造、移动、析构和拷贝操作。我的代码的调试输出如下（指针输出一般不同，但流程类似）：
+```txt
+construct: @0x55555556aeb0
+construct: @0x55555556b2e0
+move: @0x55555556b2e0
+destruct: @0
+destruct: @0x55555556aeb0
+obj:
+ @0x55555556b2e0
+Value1
+destruct: @0x55555556b2e0
+```
+可以看到程序开始在调用`return_rvalue`函数的时候，先构建了两个临时对象a和b，然后b被move给了obj对象，然后这段程序结束之后程序析构了a和b。但是b因为被move了，此时的地址变成了nullptr。所以析构的时候其实并没有析构b。接着程序按照代码要求输出了obj的地址和值。可以看到，这两个信息和b的信息一致。最后在main函数结束之后。obj的生命周期结束，所以析构了b之前创建的对象。
+
+作者举了第二个关于move的例子。这里将`std::string`对象的值move给了vector对象的一个元素中。结果之前那个`std::string`对的内容为空。但是在前面的代码中将`lv1`move给`rv1`之后反而里面有内容。<font color=red>规则还是挺奇怪的。</font>
+
+为了便于演示这段奇怪的行为，我们可以编写类似的代码：
+```cpp
+#include <iostream>
+#include <string>
+#include <utility>
+#include <vector>
+
+int main(){
+    std::string str = "str to move";
+    std::string&& rstr = std::move(str);
+
+    std::cout << "str: {" << str ;
+    std::cout << "} and rstr: {" << rstr << "}"<< std::endl;
+    std::vector<std::string> v;
+    v.push_back(std::move(str));
+    std::cout << "str: {" << str ;
+    std::cout << "} and rstr: {" << rstr << "}"<< std::endl;
+
+    return 0;
+}
+```
+这段代码的输出如下：
+```txt
+str: {str to move} and rstr: {str to move}
+str: {} and rstr: {}
+```
+
+可以看出第一次move之后str和rstr变成了同一个对象。操作str就是操作rstr。但是在push_back之后第二次打印输出的时候，str的内容变成了空，这时候rstr的内容也变成了空。这两次move的奇怪行为还是值得关注的。
+
+为了追查原因，我仿照作者之前的代码做一个自己的类去继承std::string:
+```cpp
+#include <iostream>
+#include <string>
+#include <utility>
+#include <vector>
+
+class MyStr : public std::string {
+public:
+    int* ptr;
+    using std::string::string;
+    using std::string::operator=;
+
+    MyStr() :ptr(new int(1)) {
+        std::cout << "construct: @" << ptr << std::endl;
+    }
+
+    MyStr(MyStr& s) :ptr(new int(*s.ptr)) {
+        std::cout << "copy: @" << ptr << std::endl;
+    }
+
+	MyStr(MyStr&& s) :ptr(s.ptr) {
+        std::cout << "move: @" << ptr << std::endl;
+        s.ptr = nullptr;
+    }
+
+    ~MyStr() {
+        std::cout << "destruct: @" << ptr << std::endl;
+    } 
+
+};
+
+int main() {
+    //MyStr str = "str to move";
+    MyStr str;
+    str.assign("str to move");
+    MyStr&& rstr = std::move(str);
+
+    std::cout << "str: {" << str;
+    std::cout << "} and rstr: {" << rstr << "}" << std::endl;
+    std::vector<MyStr> v;
+    v.push_back(std::move(str));
+    std::cout << "str: {" << str;
+    std::cout << "} and rstr: {" << rstr << "}" << std::endl;
+
+    return 0;
+}
+```
+
+输出如下：
+```txt
+construct: @0x55555556beb0
+str: {str to move} and rstr: {str to move}
+move: @0x55555556beb0
+str: {str to move} and rstr: {str to move}
+destruct: @0x55555556beb0
+destruct: @0
+```
+可以发现，第一次move并没有真正的被move（第一次打印之前没看到move的输出）。第二次move才真正的move成功。
+
+#### 3.2.5 完美转发
 
 ## 附录
 * [欧长坤的Modern C++教程页面](https://changkun.de/modern-cpp/)
