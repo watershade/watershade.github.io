@@ -664,6 +664,15 @@ destruct: @0
 ## 4 教程第四章笔记：容器
 原文本章的标题为“容器”。主要讲了一些modern c++中引入的新的container或者增强的container。
 
+除了本教程提到的容器内容之外，建议同时参考[微软关于容器的整体性描述](https://learn.microsoft.com/zh-cn/cpp/standard-library/stl-containers?view=msvc-170).它将容器可以分为三个类别(序列容器、关联容器和容器适配器)去分别描述。
+
+序列化容器包含`vector`,`array`,`deque`,`forward_list`,`list`等。要注意这五种容器的区别。容器类型选择通常应根据应用程序所需的搜索和插入的类型。 当对任何元素的随机访问超出限制并且仅要求在序列的末尾插入或删除元素时，`vector`应作为用于管理序列的首选容器。 当需要随机访问并且在序列起始处和末尾处插入和删除元素已到达极限时，应首选类`deque`容器进行操作。 当在序列内任何位置的高效插入和删除（采用常量时间）超出限制时，`list`容器的性能会很优异。 序列中间的此类操作需要元素副本和与序列中的元素数量成正比的分配（线性时间）。
+
+关联性容器可分为两个子集：映射(map)和集合(set). 映射`map`，有时称为字典，包含键值对。键用于对序列排序，值与该键关联。`map`的无序版本是`unordered_map`。 集合`set`仅是按升序排列每个元素的容器，值也是键。 `set`的无序版本是`unordered_set`。`map`和`set`都仅允许将键或元素的一个实例插入容器中。 如果需要元素的多个实例，请使用`multimap`或`multiset`。 无序版本是`unordered_multimap`和`unordered_multiset`。 有序版本的映射和集合采用红黑树数据结构，而无序版本使用哈希表结构。
+
+容器适配器是序列容器或关联容器的变体，为了简单明确起见，它对接口进行限制。 容器适配器不支持迭代器。`queue`容器遵循 FIFO（先进先出）语义。`priority_queue`是将最高值始终排在队列第一位的`queue`. `stack`容器遵循 LIFO（后进先出）语义。 
+
+
 ### 4.1 std::array
 std::array 对象的大小是固定的，如果容器大小是固定的，那么可以优先考虑使用 std::array 容器。std::array 容器的元素类型和大小都在编译期确定，因此可以避免运行时开销。
 
@@ -696,9 +705,163 @@ int main() {
 ```
 可以看出vector的内存个数并不是严格等于实际的元素数目。当移除一个或者清空vector时，它内部的空间并没有被回收，而是继续保留着，直到再次需要使用时才会重新分配内存。这就造成了内存的浪费。当需要回收内存时，需要使用shrink_to_fit()函数。
 
-在讲完上面为什么不能直接使用std::vector,而引入了一个新的std::array之后。作者回答了为什么用std::array代替传统的数组。说是因为“使用 std::array 能够让代码变得更加'现代化' ；而且封装了一些操作函数；同时还能够友好的使用标准库中的容器算法。”
+在讲完上面为什么不能直接使用std::vector,而引入了一个新的std::array之后。作者回答了为什么用std::array代替传统的数组。说是因为“使用 std::array 能够让代码变得更加'现代化' ；而且封装了一些操作函数；同时还能够友好的使用标准库中的容器算法。” 
 
-请注意std::array的头文件是array。文中使用的std::sort函数在algorithm头文件中。
+请注意std::array的头文件是array。文中使用的std::sort函数在algorithm头文件中。关于std::array由几点要讲的：
+* array的原型是`template<typename T, size_t N> class array`. 其中T是元素类型，N是数组大小。 
+* 在需要和C风格的代码兼容时，可以通过array.data()会获取第一个元素的地址。或者通过array.front(), &array[0], &array.at(0)获取数组首地址。可通过array.size()获取数组大小。
+* array有很多有用的成员函数，比如at(), back(), front(), data(), fill(), swap(), empty(), size(), max_size(), begin(), end(), rbegin(), rend(), cbegin(), cend(), crbegin(), crend()等。请注意front()和begin()的区别，以及back()和end()的区别。它们的返回类型不同。详情可查看[microsoft关于array的介绍](https://learn.microsoft.com/zh-cn/cpp/standard-library/array-class-stl?view=msvc-170).
+* array的元素类型和大小都在编译期确定，因此可以避免运行时开销。
+
+### 4.2 std::list
+原教程没有重点描述std::list, 因为这不是Modern C++新加入的容器。但是从内容完整性上我这里还是简单描述一下std::list.详细内容可阅读[Microsoft关于std::list的介绍](https://learn.microsoft.com/zh-cn/cpp/standard-library/list-class?view=msvc-170).
+
+C++ 标准库列表类是序列容器的一个类模板，用于将它们的元素保持为线性排列，并允许在序列的任何位置高效插入和删除。 序列存储为双向链接的元素列表，每个包含一些 Type 类型的成员。它的原型是`template <class Type, class Allocator= allocator<Type>> class list`.
+
+list的头文件是`<list>`.list提供了一系列功能函数以实现在随意位置插入和移除元素等操作以及一些必备的辅助操作。
+
+### 4.3 std::forward_list
+原教程简单介绍了`std::forward_list`, 但是没有深入讲解。`std::forward_list`是C++11引入的一种新的容器。和`std::list`的双向链表的实现不同，`std::forward_list`使用单向链表进行实现， 提供了 O(1) 复杂度的元素插入，不支持快速随机访问（这也是链表的特点），也是标准库容器中唯一一个不提供 `size()` 方法的容器。
+
+`std::forward_list`的原型是`template <class Type, class Allocator= allocator<Type>> class forward_list`. 它的头文件是`<forward_list>`.它也提供了一系列插入的功能。因为采用了单向链表，所以它的操作相对没有list那么功能强大。但是它占用的资源更少。forward_list 提供了一种比 list 更轻量级、更高效的单向链表实现，适合对内存和性能有更高要求的场景。但在使用时需要注意迭代器失效的情况。
+
+### 4.4 std::deque
+原教程没有重点描述std::list, 因为这不是Modern C++新加入的容器。`deque`允许从队列的首尾两端进行元素的添加和删除。详情可参见[Microsoft关于std::deque的介绍](https://learn.microsoft.com/zh-cn/cpp/standard-library/deque-class?view=msvc-170)。
+
+std::deque的原型是：`template <class Type, class Allocator =allocator<Type>> class deque`. 它的头文件是`<deque>`.
+
+### 4.5 std::vector
+原文教程没有对`vector`进行介绍。但是它非常重要，`std::vector`可能是我们平时最常用的容器。它的原型是`template <class Type, class Allocator =allocator<Type>> class vector`. 它的头文件是`<vector>`. `vector`以线性排列方式存储给定类型的元素，并允许快速随机访问任何元素。`vector`是需要力求保证访问性能时的首选序列容器。
+
+### 4.6 无序容器map和set
+传统 C++ 中的有序容器 `std::map/std::set`，这些元素内部通过红黑树进行实现， 插入和搜索的平均复杂度均为 O(log(size))。在插入元素时候，会根据 < 操作符比较元素大小并判断元素是否相同， 并选择合适的位置插入到容器中。当对这个容器中的元素进行遍历时，输出结果会按照 < 操作符的顺序来逐个遍历。而无序容器中的元素是不进行排序的，内部通过 Hash 表实现，插入和搜索元素的平均复杂度为 O(constant)， 在不关心容器内部元素顺序时，能够获得显著的性能提升。C++11 引入了的两组无序容器分别是：`std::unordered_map/std::unordered_multimap` 和 `std::unordered_set/std::unordered_multiset`。
+
+原教程的代码比较简洁。但是为了测试的有趣性，我自己编写了另一段代码。在我引入了随机数生成器，同时对比了有序和无序容器的性能。代码如下：
+
+```cpp
+
+#include <iostream>
+#include <map>
+#include <unordered_map>
+#include <set>
+#include <unordered_set>
+#include <string>
+#include <random>
+#include <chrono>
+#include <array>
+
+
+int main() {
+
+	std::mt19937 rng(std::random_device{}());
+	std::uniform_int_distribution<int> dis(1, 1000);
+	std::map<std::string, int> m;
+	std::set<int> s;
+	std::unordered_map<std::string, int> um;
+	std::unordered_set<int> us;
+
+	std::array<std::string, 10> str_arr;
+	std::array<int, 10> int_arr;
+	std::array <std::chrono::high_resolution_clock::time_point, 5> tim_arr;
+
+	for (int i = 0; i < 10; i++) {
+		int_arr[i] = dis(rng);
+		str_arr[i] = std::to_string(int_arr[i]);
+	}
+
+	tim_arr[0] = std::chrono::high_resolution_clock::now();
+	for (int i = 0; i < 10; i++) {
+		m.insert(std::make_pair(str_arr[i], int_arr[i]));
+	}
+
+	tim_arr[1] = std::chrono::high_resolution_clock::now();
+	for (int i = 0; i < 10; i++) {
+		um.insert(std::make_pair(str_arr[i], int_arr[i]));
+	}
+
+	tim_arr[2] = std::chrono::high_resolution_clock::now();
+	for (int i = 0; i < 10; i++) {
+		s.insert(int_arr[i]);
+	}
+
+	tim_arr[3] = std::chrono::high_resolution_clock::now();
+	for (int i = 0; i < 10; i++) {
+		us.insert(int_arr[i]);
+	}
+	tim_arr[4] = std::chrono::high_resolution_clock::now();
+
+	std::cout << "map insert operation spent "<< (tim_arr[1] - tim_arr[0]).count() << " nanoseconds" << std::endl;
+	std::cout << "unordered_map insert operation spent "<< (tim_arr[2] - tim_arr[1]).count() << " nanoseconds" << std::endl;
+	std::cout << "set insert operation spent "<< (tim_arr[3] - tim_arr[2]).count() << " nanoseconds" << std::endl;
+	std::cout << "unordered_set insert operation spent "<< (tim_arr[4] - tim_arr[3]).count() << " nanoseconds" << std::endl;
+
+	// show map
+	tim_arr[0] = std::chrono::high_resolution_clock::now();
+	std::cout << "map: " << std::endl;
+	for (const auto item : m) {
+		std::cout << "{" << item.first << ": " << item.second << "}, ";
+	}
+	std::cout << std::endl;
+
+	// show unordered_map
+	tim_arr[1] = std::chrono::high_resolution_clock::now();
+	std::cout << "unordered_map: " << std::endl;
+	for (const auto item : um) {
+		std::cout << "{" << item.first << ": " << item.second << "}, ";
+	}
+	std::cout << std::endl;
+
+	// show set
+	tim_arr[2] = std::chrono::high_resolution_clock::now();
+	std::cout << "set: " << std::endl;
+	for (const auto item : s) {
+		std::cout << item << ", ";
+	}
+	std::cout << std::endl;
+
+	// show unordered_set
+	tim_arr[3] = std::chrono::high_resolution_clock::now();
+	std::cout << "unordered_set: " << std::endl;
+	for (const auto item : us) {
+		std::cout << item << ", ";
+	}
+	std::cout << std::endl;
+
+	tim_arr[4] = std::chrono::high_resolution_clock::now();
+
+	std::cout << "map output operation spent " << (tim_arr[1] - tim_arr[0]).count() << " nanoseconds" << std::endl;
+	std::cout << "unordered_map output operation spent " << (tim_arr[2] - tim_arr[1]).count() << " nanoseconds" << std::endl;
+	std::cout << "set output operation spent " << (tim_arr[3] - tim_arr[2]).count() << " nanoseconds" << std::endl;
+	std::cout << "unordered_set output operation spent " << (tim_arr[4] - tim_arr[3]).count() << " nanoseconds" << std::endl;
+
+	return 0;
+}
+
+```
+这段代码每次生成的结果是不同的，但是可以看出有序列表和无序列表的区别。比如某一次的输出如下：
+```txt
+map insert operation spent 10390 nanoseconds
+unordered_map insert operation spent 6678 nanoseconds
+set insert operation spent 2030 nanoseconds
+unordered_set insert operation spent 2371 nanoseconds
+map:
+{308: 308}, {310: 310}, {45: 45}, {564: 564}, {619: 619}, {662: 662}, {757: 757}, {77: 77}, {948: 948}, {95: 95},
+unordered_map:
+{662: 662}, {564: 564}, {95: 95}, {310: 310}, {45: 45}, {308: 308}, {757: 757}, {948: 948}, {619: 619}, {77: 77},
+set:
+45, 77, 95, 308, 310, 564, 619, 662, 757, 948,
+unordered_set:
+619, 564, 95, 310, 308, 757, 45, 662, 948, 77,
+map output operation spent 5049 nanoseconds
+unordered_map output operation spent 13523 nanoseconds
+set output operation spent 3034 nanoseconds
+unordered_set output operation spent 2658 nanoseconds
+```
+因为我采用将打印的过程输出，所以所占用的时间并不等于将数据取出占用的时间。但是也具有一定的比较性。可以看到无序映射的插入速度比有序映射的插入速度块；但是无序映射的读出速度却比有序映射的读出速度慢。无序集合的插入速度却比有序集合的插入速度要慢，但是无序集合的读出速度要快。当然因为我插入的内容并不复杂，数量也不够规模化。如果要获得更精确的性能数据，可能需要更加复杂的测试。
+
+
+### 4.7 元组
+
 
 
 ## 附录
