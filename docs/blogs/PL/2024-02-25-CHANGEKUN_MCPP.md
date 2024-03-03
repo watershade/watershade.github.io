@@ -662,7 +662,43 @@ destruct: @0
 本章重点介绍了右值的引入带来一些需要注意的问题。此外还介绍了lambda表达式，以及使用std::function实现对函数的包装，使用std::bind实现函数和参数的绑定等。
 
 ## 4 教程第四章笔记：容器
+原文本章的标题为“容器”。主要讲了一些modern c++中引入的新的container或者增强的container。
 
+### 4.1 std::array
+std::array 对象的大小是固定的，如果容器大小是固定的，那么可以优先考虑使用 std::array 容器。std::array 容器的元素类型和大小都在编译期确定，因此可以避免运行时开销。
+
+本章开头讲到了为什么要使用std::array. 其中提到了一点有趣的知识：<font color=orange>由于 std::vector 是自动扩容的，当存入大量的数据后，并且对容器进行了删除操作， 容器并不会自动归还被删除元素相应的内存，这时候就需要手动运行 shrink_to_fit() 释放这部分内存。</font>类似的例子如下：
+```cpp
+#include <iostream>
+#include <vector>
+
+int main() {
+    std::vector<int> vec = { 1, 2, 3, 4, 5 };
+    std::cout << "Current capacity: " << vec.capacity() << std::endl; // Output: Current capacity: 5
+
+    vec.push_back(6); // 增加一个元素
+    std::cout << "After adding an element, capacity: " << vec.capacity() << std::endl; // Output: After adding an element, capacity: 10
+
+    vec.pop_back(); // 移除一个元素
+    std::cout << "After removing an element, capacity: " << vec.capacity() << std::endl; // Output: After removing an element, capacity: 10
+
+    vec.shrink_to_fit(); // 回收内存
+    std::cout << "After calling shrink_to_fit, capacity: " << vec.capacity() << std::endl; // Output: After calling shrink_to_fit, capacity: 5
+
+    vec.clear(); // 清空元素
+    std::cout << "After calling clear, capacity: " << vec.capacity() << std::endl; // Output: After calling clear, capacity: 5
+
+    vec.shrink_to_fit(); // 回收内存
+    std::cout << "After calling shrink_to_fit again, capacity: " << vec.capacity() << std::endl; // Output: After calling shrink_to_fit again, capacity: 0
+
+    return 0;
+}
+```
+可以看出vector的内存个数并不是严格等于实际的元素数目。当移除一个或者清空vector时，它内部的空间并没有被回收，而是继续保留着，直到再次需要使用时才会重新分配内存。这就造成了内存的浪费。当需要回收内存时，需要使用shrink_to_fit()函数。
+
+在讲完上面为什么不能直接使用std::vector,而引入了一个新的std::array之后。作者回答了为什么用std::array代替传统的数组。说是因为“使用 std::array 能够让代码变得更加'现代化' ；而且封装了一些操作函数；同时还能够友好的使用标准库中的容器算法。”
+
+请注意std::array的头文件是array。文中使用的std::sort函数在algorithm头文件中。
 
 
 ## 附录
