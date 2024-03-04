@@ -859,10 +859,41 @@ unordered_set output operation spent 2658 nanoseconds
 ```
 因为我采用将打印的过程输出，所以所占用的时间并不等于将数据取出占用的时间。但是也具有一定的比较性。可以看到无序映射的插入速度比有序映射的插入速度块；但是无序映射的读出速度却比有序映射的读出速度慢。无序集合的插入速度却比有序集合的插入速度要慢，但是无序集合的读出速度要快。当然因为我插入的内容并不复杂，数量也不够规模化。如果要获得更精确的性能数据，可能需要更加复杂的测试。
 
-
 ### 4.7 元组
+在传统C++，只有表示两个元素组成的键值对的pair，而没有像python那样支持多个元素的tuple。C++11中才引入了tuple。只是引入tuple之后并没有废弃pair。在map或者unordered map中，还是使用pair作为键值对的存储结构。常用的tuple函数有`std::make_tuple()`(用来构造元组), `std::get<>()`(用来获取元组中的元素), `std::tie()`(用来将多个变量绑定到元组中)。
 
+但是这部分的难点是在介绍tupl运行时输入变量位置的方法中用到了std::varient。std::varient是C++17引入的新特性，用来解决函数模板的多态性。std::varient用于表示具有固定、有限数量的可能类型中的一个值。它类似于联合体（union），但是它提供了类型安全性保证，并且支持在运行时确定当前储存的是哪种类型。std::variant是一种类型安全的联合类型，能够容纳多种不同类型的值，但在任何给定时间，只有一个值是有效的。
+```cpp
+#include <variant>
+template <size_t n, typename... T>
+constexpr std::variant<T...> _tuple_index(const std::tuple<T...>& tpl, size_t i) {
+    if constexpr (n >= sizeof...(T))
+        throw std::out_of_range("越界.");
+    if (i == n)
+        return std::variant<T...>{ std::in_place_index<n>, std::get<n>(tpl) };
+    return _tuple_index<(n < sizeof...(T)-1 ? n+1 : 0)>(tpl, i);
+}
+template <typename... T>
+constexpr std::variant<T...> tuple_index(const std::tuple<T...>& tpl, size_t i) {
+    return _tuple_index<0>(tpl, i);
+}
+template <typename T0, typename ... Ts>
+std::ostream & operator<< (std::ostream & s, std::variant<T0, Ts...> const & v) { 
+    std::visit([&](auto && x){ s << x;}, v); 
+    return s;
+}
+```
+这段代码第一个模板函数_tuple_index用来递归的获取元组中的元素。第二个模板函数tuple_index用来调用_tuple_index，并将结果转换为std::variant。第三个模板函数operator<<实现对cout的重载，实现对tuple的输出。这中间有几个复杂的用法。第一个是`std::in_place_index<n>`:std::in_place_index 是 C++17 引入的专门为 std::variant 设计的标签位，它的作用是指示 std::variant 要选择使用的类型。std::in_place_index带有一个参数n，表示要在variant的备选类型列表中第n个类型上就地构造。第二个是`std::get<n>(tp1)`:std::get 是标准库中的函数模板，用于从元组中获取指定索引位置的值。它接受一个模板参数n，表示要获取的元素的索引位置。第三个是`std::visit([&](auto && x){ s << x;}, v); `: `std::visit`是C++17中引入的一个标准库函数，用于对`std::variant`中的值进行访问。它使用访问者模式，为`std::variant`中的每种可能的类型都提供了一个分支，可以根据实际存储的类型来调用对应的处理函数。
 
+关于std::tuple最好的使用还是需要直到确定的参数数量。但对于可变参数数量的tuple，具体实现确实很复杂。需要使用std::tuple_size<T>::value或者std::tuple_size_v<T>来实现。
+
+### 4.8 总结
+这部分讲了Modern C++新引入的容器类型。我在这部分顺便复习了三类容器：序列化容器，关联话容器和容器适配器。这部分原文还讲了元组，而且提供了可变参数元组的模板化实现方法。
+
+这部分原书没有提供习题。
+
+## 5 原书第五章内容笔记：智能指针与内存管理
+原书的第五章标题是《智能指针与内存管理》. 通过标题你也应该直到这来到了Modern C++比较重要的一部分：智能指针。智能指针为Modern C++带来了更好的内存管理，也是多数Modern C++使用者比较青睐的功能。
 
 ## 附录
 * [欧长坤的Modern C++教程页面](https://changkun.de/modern-cpp/)
