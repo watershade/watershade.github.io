@@ -895,6 +895,85 @@ std::ostream & operator<< (std::ostream & s, std::variant<T0, Ts...> const & v) 
 ## 5 原书第五章内容笔记：智能指针与内存管理
 原书的第五章标题是《智能指针与内存管理》. 通过标题你也应该直到这来到了Modern C++比较重要的一部分：智能指针。智能指针为Modern C++带来了更好的内存管理，也是多数Modern C++使用者比较青睐的功能。
 
+在传统 C++ 里我们只好使用 new 和 delete 去 『记得』对资源进行释放。而 C++11 引入了智能指针的概念，使用了引用计数的想法，让程序员不再需要关心手动释放内存。 目前有三类智能指针，分别是std::shared_ptr， std::unique_ptr， std::weak_ptr。使用它们需要包含头文件 <memory>。
+
+### 5.1 std::shared_ptr/公用指针
+`std::shared_ptr`是一种智能指针，它能够记录多少个`shared_ptr`共同指向一个对象，从而消除显式的调用`delete`，当引用计数变为零的时候就会将对象自动删除。创建`shared_ptr`试用make_shared()函数，从而避免试用new来创建对象。 `std::make_shared`会分配创建传入参数中的对象， 并返回这个对象类型的`std::shared_ptr`指针。
+
+`std::shared_ptr`可以通过`get()`函数来获取`shared_ptr`所指向的对象。通过`use_count()`函数来获取引用计数。通过`reset()`函数来重置`shared_ptr`，使其指向一个新的对象。
+
+### 5.2 std::unique_ptr/独享指针
+`std::unique_ptr`是一种独占的智能指针，它禁止其它智能指针与其共享同一个对象，从而保证代码的安全. 它只能被移动，不能被复制。创建`std::unique_ptr`需要使用`std::make_unique()`函数。
+
+`std::shared_ptr``get()`函数来获取`shared_ptr`所指向的对象。通过`reset()`函数来重置`shared_ptr`，使其指向一个新的对象。但是它不像`std::shared_ptr`有`use_count()`函数。实际测试发现可以将`std::unique_ptr`move给一个`std::shared_ptr`对象。但是不能将一个`std::shared_ptr`赋值或者move给一个`std::unique_ptr`对象。
+
+### 5.3 std::weak_ptr/弱指针
+std::weak_ptr是一种弱引用（相比较而言 std::shared_ptr 就是一种强引用）。由于它是弱指针，因此它并不增加所指向对象的引用计数，也不阻止对象被释放。
+
+* expired()： 该方法用于检查所指向的对象是否已经被释放。如果对象已经不再存在，返回 true；否则返回 false。
+* lock()： 该方法返回一个`std::shared_ptr`，指向与`std::weak_ptr`共享的对象.如果所指向的对象已经被释放，则返回一个nullptr。
+
+原书并没有提供如何试用weak_ptr的例子。我对它提供的解释shared_ptr的代码做了适当的修改，提供了这样一个例子，可能更好的反应weak_ptr的用法。
+
+```cpp
+#include <iostream>
+#include <memory>
+
+class A;
+class B;
+
+class A {
+public:
+    std::weak_ptr<B> pointer;
+    ~A() {
+        std::cout << "A was destroyed" << std::endl;
+    }
+};
+class B {
+public:
+    std::weak_ptr<A> pointer;
+    ~B() {
+        std::cout << "B was destroyed" << std::endl;
+    }
+};
+int main() {
+    std::shared_ptr<A> a = std::make_shared<A>();
+    {
+        std::shared_ptr<B> b = std::make_shared<B>();
+        a->pointer = b;
+        b->pointer = a;
+
+		std::cout << "a.use_count() = " << a.use_count() << std::endl;
+		std::cout << "b.use_count() = " << b.use_count() << std::endl;
+
+        if (a->pointer.expired()) {
+            std::cout << "1: a's pointer expired" << std::endl;
+        }
+        else {
+            std::cout << "1: a's pointer isn't expired" << std::endl;
+        }
+    }
+    if (a->pointer.expired()) {
+       std::cout << "2: a's pointer expired" << std::endl;
+    }
+    else {
+        std::cout << "2: a's pointer isn't expired" << std::endl;
+    }
+
+    return 0;
+}
+
+```
+
+### 5.4 总结
+智能指针这种技术并不新奇，在很多语言中都是一种常见的技术，现代 C++ 将这项技术引进，在一定程度上消除了 new/delete 的滥用，是一种更加成熟的编程范式。
+
+本章没有提供习题。
+
+
+## 6 原书第六章内容笔记：正则表达式
+
+
 ## 附录
 * [欧长坤的Modern C++教程页面](https://changkun.de/modern-cpp/)
 * [欧长坤的Modern C++教程仓库](https://github.com/changkun/modern-cpp-tutorial/)
