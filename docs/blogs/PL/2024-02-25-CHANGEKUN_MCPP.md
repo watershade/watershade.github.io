@@ -77,7 +77,7 @@ auto只能对变量进行类型推导。
 #### 2.3.2 decltype关键字
 decltype: decltype关键字可以认为是declare type的缩写。这个关键字是为了解决auto关键字只能对变量进行类型推导的缺陷二出现的。它的用法和`typeof`类似。用法是：`decltype(expression)`。decltype的作用是返回expression的类型。decltype的表达式一般是变量、函数调用、成员访问、运算符表达式等。decltype的返回值是一个类型，而不是表达式的值。
 
-* 关于`typedef`: 早期的C++标准中并没有提供名为typeof的关键字，而是在某些编译器或语言中支持的扩展。在标准C++中，类型推导是通过decltype来实现的，因此可以将typeof视为一种扩展，而不是正式的C++标准关键字。
+* 关于`typedef`: 早期的C++标准中并没有提供名为typedef的关键字，而是在某些编译器或语言中支持的扩展。在标准C++中，类型推导是通过decltype来实现的，因此可以将typedef视为一种扩展，而不是正式的C++标准关键字。
 
 * 关于`typeid`: typeid关键字是用来获取表达式的类型信息的。但是在C++11中，typeid只能用于指针、引用、成员指针、成员函数指针等。在C++17中，typeid可以用于任意表达式。typeid是一个运算符不是函数。typeid 的结果是 const type_info&。 该值是对表示 type-id 或 expression 的类型的 type_info 对象的引用，具体取决于所使用的 typeid 的形式。关于typeid的更多信息，可以参考[微软关于typeid的介绍](https://learn.microsoft.com/zh-cn/cpp/cpp/typeid-operator?view=msvc-170)。
 
@@ -970,8 +970,37 @@ int main() {
 
 本章没有提供习题。
 
-
 ## 6 原书第六章内容笔记：正则表达式
+
+### 6.1 正则表达式
+原教程对于正则表达式的描述还是很清楚的。正则表达式不是 C++ 语言的一部分。正则表达式描述了一种字符串匹配的模式，它是由普通字符（例如 a 到 z）以及特殊字符组成的文字模式。模式描述在搜索文本时要匹配的一个或多个字符串。一般使用正则表达式主要是实现下面三个需求：
+* 是否包含：检查一个串是否包含某种形式的子串；
+* 替换：将匹配的子串替换；
+* 获取：从某个串中取出符合条件的子串。
+
+文中还描写了普通字符，特殊字符和限定符。因为涉及的问题比较零碎，我就不再转述。我一般是借助一些网页工具帮助我辅助生成需要的正则表达式。因为要长时间记住这些字符确实比较困难，用的时候再了解即可。
+
+### 6.2 std::regex 及其相关
+传统C++没有将正则表达式正式纳入标准库，直到C++11才将其纳入其中。通过C++11 提供的正则表达式库可对`std::string`对象进行操作，模式`std::regex`（本质上是 `std::basic_regex`）由 `std::regex_match` 初始化并匹配生成 `std::smatch`（本质上是 `std::match_results` 对象。
+
+* `std::regex_match`用于匹配字符串和正则表达式，有很多不同的重载形式。 最简单的一个形式就是传入 `std::string` 以及一个 `std::regex` 进行匹配， 当匹配成功时，会返回 true，否则返回 false。
+
+* 另一种常用的形式就是依次传入 `std::string/std::smatch/std::regex` 三个参数， 其中 `std::smatch` 的本质其实是 `std::match_results`。 故而在标准库的实现中， `std::smatch` 被定义为了 `std::match_results<std::string::const_iterator>`， 也就是一个子串迭代器类型的 `match_results`。 使用 `std::smatch` 可以方便的对匹配的结果进行获取.
+
+### 6.3 总结和习题
+本章内容比较简单。但是结尾有一个习题。但是这个习题比较复杂，它没有提供需要填充的完整项目，需要自行下载配置。这个项目依赖与boost库的asio库。如果要顺利编程需要在运行环境中安装boost库。关于asio的使用，可以看[这个教程](https://think-async.com/Asio/)
+
+关于boost的安装这里简要交代一下。可以使用`sudo apt search boost`搜索，当前我的debian里面提供了1.81和1.74版本（默认）的安装。你可以使用如下命令安装：`sudo apt install libboost-all-dev`或者`sudo apt install libboost1.81-all-dev`.除了这种方法，你也可以从源码编译安装。具体可以查询[boost的官方文档](https://github.com/boostorg/wiki/wiki/Getting-Started%3A-Overview)或者[入门教程](https://www.boost.io/doc/user-guide/getting-started.html)。安装boost会额外增加近500M的磁盘空间。此外asio实际上有两个子集，一个是boost的，另一个是non-boost的。
+
+除了boost之外，这个库还需要安装openssl。请注意如果你只是通过`sudo apt install openssl`还不行，还需要安装`sudo apt install libssl-dev`.另外不同的boost库依赖的OpenSSL版本可能不同。
+
+几个关于asio的教程：
+* [boost.asio教程](https://think-async.com/Asio/)
+* [boost.asio网络编程](https://mmoaay.gitbooks.io/boost-asio-cpp-network-programming-chinese/content/Chapter1.html)
+
+
+## 7 原书第七章内容笔记：并行与并发
+
 
 
 ## 附录
