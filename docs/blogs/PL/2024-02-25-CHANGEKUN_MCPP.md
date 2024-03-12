@@ -1,5 +1,5 @@
 ---
-title: Modern CPP MicroSoft Guideline
+title: ChangKun的Modern CPP教程学习笔记
 categories: [Programming Language]
 date: 2024-02-10
 permalink: /PL/CHANGEKUN_MCPP/
@@ -1000,9 +1000,171 @@ int main() {
 
 
 ## 7 原书第七章内容笔记：并行与并发
+这是本书第七章，主要讲了并发和并行相关的一些技术。但是本书讲解的比较简单。如果想要了解完整的Modern C++关于并发技术的详情，可以看[C++ Reference: Concurrency相关章节](https://en.cppreference.com/w/cpp/thread).
+
+
+### 7.1 并行基础：thread
+这部分简单介绍了thred的创建和等待。更详细的thread用法并没有介绍。另外提到了`get_id()`函数和`join()`函数。
+如果想要稍微详细的了解thread，可以看[这个教程](https://www.runoob.com/w3cnote/cpp-std-thread.html)和[CPP Reference](https://www.cplusplus.com/reference/thread/thread/)。
+
+thread的原型：
+```cpp
+thread() noexcept;                              // 创建一个默认构造函数
+template <class Fn, class... Args>      
+explicit thread(Fn&& fn, Args&&... args);       // 初始化构造函数，传入函数和参数
+[deleted]	thread(const thread&) = delete;     // std::thread 对象不可拷贝构造
+thread(thread&& x) noexcept;                    // moveable构造函数
+```
+总结起来可以为thread创建默认构造函数，或者创建时传入函数和参数。thread不能被copy但是可以被move。thread除了前面提到的用以获取thread id的`get_id()`和等待线程结束的`join()`函数实现外，还提供了其它函数：
+* detach：`detach()`方法用于将当前线程实体与该线程对象分离开来，使得线程的执行可以单独运行，这样分离出去的线程实体可以自行销毁而不需要调用join函数等待。k
+* joinable: `joinable()`方法用于判断线程是否可以join，如果可以join，则返回true，否则返回false。
+* swap: `swap()`方法用于交换两个thread对象。这个其实不太容易想到场景。据说在一些复杂的线程管理和协作逻辑时可以用到swap.
+* yield: `yield()`方法用于让出当前线程的执行权，让出时间片，让其他线程有机会执行。
+* sleep_for: `sleep_for()`函方法用于让当前线程暂停一段时间。
+* sleep_until: `sleep_until()`方法用于让当前线程暂停到指定的时间点。不过由于线程调度等原因，实际休眠时间可能比sleep_duration 所表示的时间片更长。
+* native_handle: `native_handle()`方法用于获取底层的线程句柄，可以用于一些底层的操作。（由于 std::thread 的实现和操作系统相关，因此该函数返回与 std::thread 具体实现相关的线程句柄，例如在符合 Posix 标准的平台下(如 Unix/Linux)是 Pthread 库）。
+
+### 7.2 互斥量（Mutex）和临界区（Critical Section）
+在将互斥量之前，先简单介绍一下临界区。临界区是指在多线程编程中一个同时只能被一个线程访问的代码块或者数据区域。在临界区内部的代码同一时刻只能被一个线程执行，这样可以避免多个线程同时访问共享资源而引发的数据竞争和不确定性行为。为了保护临界区不受并发访问的影响，通常使用同步机制来对临界区进行保护。常用的同步机制包括互斥锁（mutex）、信号量（semaphore）、条件变量等。在多线程编程中，正确使用临界区和合适的同步机制是确保数据完整性和避免竞态条件的关键。RTOS中的临界区概念和多线程临界区类似，只是需要更加关注调度和中断机制。
+
+互斥量多多线程编程中经常用于解决资源竞争所使用的类型。C++11 引入了`mutex`相关的类，其所有相关的函数都放在`<mutex>`头文件中。mutex的函数比较简单，主要有：
+* lock: `lock()`方法是阻止调用线程，直到线程获取互斥体的所有权。
+* try_lock: `try_lock()`方法用于尝试锁住互斥量，如果互斥量已经被其他线程锁住，则返回`false`，否则返回`true`。
+* unlock: `unlock()`方法用于解锁互斥量，使得其他线程可以访问临界区。
+* native_handle：`native_handle()`方法返回表示`mutex`句柄的特定于实现的类型。可以特定于实现的方式使用互斥体句柄。
+
+如果想要更加清晰的了解标准库里的mutex，可以看[微软关于mutex的文档](https://learn.microsoft.com/zh-cn/cpp/standard-library/mutex-class-stl?view=msvc-170)。
+
+ C++11 还为互斥量提供了一个 RAII 语法的模板类 `std::lock_guard`。 RAII 在不失代码简洁性的同时，很好的保证了代码的异常安全性。由于 C++ 保证了所有栈对象在生命周期结束时会被销毁，所以这样的代码也是异常安全的。 无论 `critical_section()` 正常返回、还是在中途抛出异常，都会引发堆栈回退，也就自动调用了 `unlock()`。`lock_guard`的使用比较简单，详情可以查看[微软关于lockguard的文档](https://learn.microsoft.com/zh-cn/cpp/standard-library/lock-guard-class?view=msvc-170)。
+
+而`std::unique_lock`则是相对于`std::lock_guard`出现的，`std::unique_lock`更加灵活，`std::unique_lock`的对象会以独占所有权（没有其他的`unique_lock`对象同时拥有某个 `mutex`对象的所有权） 的方式管理`mutex`对象上的上锁和解锁的操作。所以在并发编程中，推荐使用 `std::unique_lock`。std::lock_guard 不能显式的调用 `lock` 和 `unlock`， 而 `std::unique_lock` 可以在声明后的任意位置调用，可以缩小锁的作用范围，提供更高的并发度。`unique_lock`还可以wait条件变量，总之它更加灵活强大。`std::unique_lock`提供了多个方法：`lock`, `try_lock`, `try_lock_for`, `try_lock_until`, `unlock`, `swap`, `release`, `owns_lock`。这里不再一一转述。详情可以查看[微软关于uniquelock的文档](https://learn.microsoft.com/zh-cn/cpp/standard-library/unique-lock-class?view=msvc-170)。
+
+### 7.3 Future/Promise/Async 期物/承诺/异步
+原文将Future翻译成“期物”。涉及到Future的另外两个概念，这一章尽管没有描述但我觉得有必要交代。这两个概念时Promise翻译成“承诺”，Async翻译成“异步”。这三个概念在并发编程中都有重要的作用。关于这三者的联系后续应该自然会讲到。这里是三个概念和packaged_task的的详细介绍。
+
+* [CPP Reference: std::future](https://en.cppreference.com/w/cpp/thread/future)
+* [CPP Reference: std::promise](https://en.cppreference.com/w/cpp/thread/promise)
+* [CPP Reference: std::async](https://en.cppreference.com/w/cpp/thread/async)
+* [CPP Reference: std::packaged_task](https://en.cppreference.com/w/cpp/thread/packaged_task)
+
+
+std::future的使用很大程度上优化了异步获取数据的实现。原文对其解释的还是不错的。文中在介绍时还提到了`std::packaged_task`。只是文中对于Future的介绍非常的简单。建议看我上面提供的链接详细了解一下这些概念。Future一般是通过`std::promise`,`std::async`或`std::packaged_task`等异步操作来创建的。Future的状态有三种：
+* 等待（Waiting）：Future对象刚刚被创建，或者刚刚被设置值。
+* 就绪（Ready）：Future对象已经被设置值，可以获取值。
+* 已完成（Done）：Future对象已经完成，不能再设置值。
+
+Future的获取值有两种方式：
+* `get()`：阻塞等待Future对象的值，直到值可用。
+* `wait()`：非阻塞等待Future对象的值，如果Future对象的值已经可用，则立即返回，否则阻塞等待。
+* `wait_for()`：等待Future对象的值，直到超时或Future对象的值可用。
+* `wait_until()`：等待Future对象的值，直到指定的时间点或Future对象的值可用。
+
+Future只要通过`std::promise`,`std::async`或`std::packaged_task`等来`get_future()`的。因此有必要简单介绍一下这三者。
+
+#### 7.3.1 std::promise (承诺/约定)
+promise和Future配合使用，以实现异步编程。promise是一个承诺，它代表了一个将要被设置值的对象。需要注意promise只能设置一次值，设置值后，promise就变成了不可设置的对象。promise的创建需要用到`std::promise`类。它的原型如下：
+```cpp
+template< class R > class promise;       // 基础模板
+template< class R > class promise<R&>;   // 非void专用模板，用于线程通讯
+template<> class promise<void>;          // void专用模板
+```
+
+每个promise都有一个共享状态（shared state），共享状态包含了状态和结果。结果可能是“尚未求值”，“已经获取值”（可以是void），或者“异常”。promise的函数有：
+* `get_future()`：返回一个Future对象，该对象代表了promise的共享状态。
+* `set_value()`：用来将特定值（value）设置给结果。
+* `set_value_at_thread_exit()`：用来在线程退出时设置结果。
+* `set_exception()`：设置结果为某个异常状态。因此要注意Future在获取值时，安全期间或使用`try-catch`块来捕获异常。
+* `set_exception_at_thread_exit()`：设置结果为某个异常状态，并且在线程退出时设置。
+* `swap()`：交换两个promise对象。
+
+#### 7.3.2 std::async (异步)
+async负责异步运行一个函数（可能在新线程中），并返回一个std::future去保存结果。async的原型如下：
+```cpp
+// 基础模板， 在C++11~C++17之间可以用，随后被另一种实现取代
+template< class F, class... Args >
+std::future<typename std::result_of<typename std::decay<F>::type(
+        typename std::decay<Args>::type...)>::type>
+    async( F&& f, Args&&... args );
+
+// 基础模板， 在C++17到C++20之间被使用，取代了前一种实现
+template< class F, class... Args >
+std::future<std::invoke_result_t<std::decay_t<F>,
+                                 std::decay_t<Args>...>>
+    async( F&& f, Args&&... args );
+
+// 基础模板， 在C++20之后被使用，取代了前两种实现
+template< class F, class... Args >
+[[nodiscard]] std::future<std::invoke_result_t<std::decay_t<F>,
+                                               std::decay_t<Args>...>>
+    async( F&& f, Args&&... args );    
+
+// 带有策略参数的模板，用于指定线程创建策略
+// 在C++11~C++17之间可以用，随后被后一种实现取代
+template< class F, class... Args >
+std::future<typename std::result_of<typename std::decay<F>::type(
+        typename std::decay<Args>::type...)>::type>
+    async( std::launch policy, F&& f, Args&&... args );
+
+// 带有策略参数的模板，用于指定线程创建策略
+// 在C++17~C++20之间可以用，随后被后一种实现取代
+template< class F, class... Args >
+std::future<std::invoke_result_t<std::decay_t<F>,
+                                 std::decay_t<Args>...>>
+    async( std::launch policy, F&& f, Args&&... args );
+
+// 带有策略参数的模板，用于指定线程创建策略
+// 在C++20之后被使用，取代了前两种实现
+template< class F, class... Args >
+[[nodiscard]] std::future<std::invoke_result_t<std::decay_t<F>,
+                                               std::decay_t<Args>...>>
+    async( std::launch policy, F&& f, Args&&... args );
+
+```    
+
+上面的原型看似复杂，但对于用户实际上只有两种参数形式：一种带函数和参数，另一种还携带了策略参数。策略参数用于指定线程创建策略，可以是`std::launch::deferred`或`std::launch::async`。`std::launch::deferred`表示延迟创建线程，直到调用`std::future::get()`时才创建线程。`std::launch::async`表示立即创建线程。
+
+有一点请注意，`std::async`的返回值是一个`std::future`，但这个future的类型是由函数的返回值决定的。它不像promise那样可以需要通过`get_future()`去获取一个future对象。
+
+#### 7.3.3 std::packaged_task (打包任务)
+packaged_task是一个包装器，它可以用来存储一个可调用对象（callable object，包括function, lambda表达式, bind表达式, 或任何函数对象），并将其提交给线程池。包装器的创建需要用到`std::packaged_task`类。它的原型如下：
+```cpp
+// 基础模板
+template< class > class packaged_task;
+
+// 带参数模板
+template< class R, class ...ArgTypes >
+class packaged_task<R(ArgTypes...)>;
+```
+
+packaged_task的函数有：
+* `get_future()`：返回一个Future对象，该对象代表了packaged_task的共享状态。
+* `make_ready_at_thread_exit()`：在线程退出时设置结果。
+* `swap()`：交换两个packaged_task对象。
+* `valid()`：判断packaged_task对象是否有效。
+* `operator()`：调用packaged_task对象所包装的可调用对象。
+* `reset()`：重置packaged_task对象，使其可以被重新使用。
+
+最后需要提一句的是，请注意在packaged_task传递的时候传递时都使用的是`std::move`。谨记。
+
+
+### 7.4 condition variable(条件变量) 
+
+
+
+### 7.x jthread(C++20)
+这一部分是额外增加的内容。用来介绍C++20引入的jthread。jthread是C++20引入的新线程类型，可以用来简化线程创建和管理。关于jthread的详细介绍，可以看[C++ Reference: std::jthread](https://en.cppreference.com/w/cpp/thread/jthread)。
+
+jthread的创建需要用到`std::jthread`类。它的原型如下：
+```cpp
+template<class F, class... Args>    
+std::jthread(F&& f, Args&&... args);
+```
+
+
 
 
 
 ## 附录
 * [欧长坤的Modern C++教程页面](https://changkun.de/modern-cpp/)
 * [欧长坤的Modern C++教程仓库](https://github.com/changkun/modern-cpp-tutorial/)
+* [微软modern c++文档](https://learn.microsoft.com/zh-cn/cpp/cpp/welcome-back-to-cpp-modern-cpp?view=msvc-170)
