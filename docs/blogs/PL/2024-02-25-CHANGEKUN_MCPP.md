@@ -1148,11 +1148,99 @@ packaged_task的函数有：
 
 
 ### 7.4 condition variable(条件变量) 
+`std::condition_variable` 是与 `std::mutex` 配合使用的同步原语，用于阻塞一个或多个线程，直到另一个线程修改了共享变量（条件）并通知了 `std::condition_variable`。
+
+condition_variable有两个版本。`condition_variable`仅适用于 std::unique_lock<std::mutex>，这样可以在某些平台上实现最高效率。std::condition_variable_any 提供了一个适用于任何BasicLockable对象（如std::shared_lock）的条件变量。
+
+条件变量允许同时调用 `wait`、`wait_for`、`wait_until`、`notify_one` 和 `notify_all` 成员函数。
+
+原文对于condition_variable的介绍和演示没有涉及到wait的pred条件部分。建议看[cpp reference: std::condition_variable](https://en.cppreference.com/w/cpp/thread/condition_variable).另外在搜索网络资源时，看到一款还不错的文章[条件变量condition_variable的使用及陷阱](https://www.cnblogs.com/fenghualong/p/13855360.html)。
+
+要理解condition variable，可以认为它的wait函数负责自动解锁，等待，验证和自动加锁的一段自动处理流程。
+
+### 7.5 内存模型和原子操作(atomic)
+原文介绍了在多线程中原子操作的必要性。但是原文对std::atomic的介绍并不详细。建议看[cpp reference: std::atomic](https://en.cppreference.com/w/cpp/atomic/atomic)。
+
+std::atomic的原型是：
+```cpp
+template< class T >
+struct atomic;
+// (1)	(since C++11)
+template< class U >
+struct atomic<U*>;
+// (2)	(since C++11)
+// Defined in header <memory>
+template< class U >
+struct atomic<std::shared_ptr<U>>;
+// (3)	(since C++20)
+template< class U >
+struct atomic<std::weak_ptr<U>>;
+//(4)	(since C++20)
+// Defined in header <stdatomic.h>
+#define _Atomic(T) /* see below */
+// (5)	(since C++23)
+```
+下面是std::atomic的几个重要函数：
+
+* `is_lock_free`函数可以用来检查该原子类型是否是无锁的。(原文描述有误，详情可参见[这里](https://en.cppreference.com/w/cpp/atomic/atomic/is_lock_free))
+* `is_always_lock_free`函数可以用来检查该原子类型是否是始终无锁的。
+* `store`函数用来给atomic赋值
+* `load`函数用来读取atomic的值
+* `exchange`函数用来交换值
+* `wait`函数用来等待条件变量
+* `notify_one`函数用来通知一个等待线程
+* `notify_all`函数用来通知所有等待线程
+
+某些基础类型还支持如下操作：
+* `fetch_add`函数用来原子地加减。等价符号可以是`++`或`+=`操作。
+* `fetch_sub`函数用来原子地加减。等价符号可以是`--`或`-=`操作。
+* `fetch_and`函数用来原子地与。等价符号是`&=`操作。
+* `fetch_or`函数用来原子地或。等价符号是`|=`操作。
+* `fetch_xor`函数用来原子地异或。等价符号是`^=`操作。
+
+对于modern c，也引入了_Atomic。`_Atomic is a keyword and used to provide atomic types in C.` 在c语言中_Atomic是为c语言提供原子类型的关键字，基本功能和c++中的std::atomic类似。在gcc或者clang中某些功能可能需要添加链接条件`-latomic`.
 
 
+这里再探讨一下是否支持无锁操作的问题：
+```txt
+All atomic types except for std::atomic_flag may be implemented using mutexes or other locking operations, rather than using the lock-free atomic CPU instructions. Atomic types are also allowed to be sometimes lock-free, e.g. if only aligned memory accesses are naturally atomic on a given architecture, misaligned objects of the same type have to use locks.
+除了std::atomic_flag之外，所有原子类型都可以使用互斥或其他加锁操作来实现，而不是使用无锁的 CPU 原子指令。原子类型有时也允许是无锁的，例如，如果在给定的体系结构上只有对齐的内存访问是天然原子的，那么同一类型的错位对象就必须使用锁。
 
-### 7.x jthread(C++20)
-这一部分是额外增加的内容。用来介绍C++20引入的jthread。jthread是C++20引入的新线程类型，可以用来简化线程创建和管理。关于jthread的详细介绍，可以看[C++ Reference: std::jthread](https://en.cppreference.com/w/cpp/thread/jthread)。
+The C++ standard recommends (but does not require) that lock-free atomic operations are also address-free, that is, suitable for communication between processes using shared memory.
+C++ 标准建议（但不要求）无锁原子操作也是无地址的，也就是说，适用于使用共享内存的进程之间的通信。
+
+```
+
+除了std::atomic，还有一个经常用到的原子操作是std::atomic_flag。std::atomic_flag是一个原子类型，可以用来实现简单的互斥。它的原型如下：
+```cpp
+class atomic_flag {
+public:
+    atomic_flag() noexcept; 
+
+    atomic_flag(const atomic_flag&) = delete;
+    atomic_flag& operator=(const atomic_flag&) = delete;
+
+    void clear() noexcept;
+    bool test_and_set() noexcept;   
+};
+```
+请注意std::atomic_flag和std::atomic<bool>（它的alias是std::atomic_bool）是不同的。std::atomic_flag常被用来实现CAS操作。详细了解可查看[cpp reference: std::atomic_flag](https://en.cppreference.com/w/cpp/atomic/atomic_flag)。我在上面提到了`std::atomic_flag`是真正的lock_free的。
+
+原文中还讨论了一致性模型。在这之前我并未意识到有这么多一致性模型的。它们分别是线性一致性（强一致性或者原子一致性），顺序一致性，因果一致性和最终一致性（有界一致性）。这些不同的一致性需求就引入了内存顺序的概念。
+
+C++11还提供了std::memory_order，用于描述内存模型。std::memory_order有六种模型：
+1. memory_order_relaxed: 宽松模型。此模型只要求在单个线程内原子操作顺序执行。不允许指令重排，但不同线程间原子操作的顺序是任意的。
+2. memory_order_release/memory_order_consume: 发布/消费模型。在此模型下消费者会对发布（release）的原子操作进行读取。消费者依赖于发布者release时的值。
+3. memory_order_release/memory_order_acquire: 发布/获取模型。在此模型下，在释放 std::memory_order_release 和获取 std::memory_order_acquire 之间规定时序，即发生在释放（release）操作之前的所有写操作，对其他线程的任何获取（acquire）操作都是可见的，亦即发生顺序（happens-before）。
+4. memory_oder_seq_cst: 顺序一致性模型。在此模型下，所有线程的原子操作都按顺序执行，并且在其他线程的原子操作之前完成。
+
+除了上面用到的5种内存模型，还有一个memory_order_acq_rel模型，它是memory_order_acquire和memory_order_release的组合。它表示在释放和获取之间的所有操作都必须是原子的。一般用于std::compare_exchange_weak和std::compare_exchange_strong中。（因为这个操作的过程中既需要要确保在它之前的写入操作和在它之后的读出操作都被更新。）
+
+
+关于内存模型的文章可以看[cpp reference: Memory Model](https://en.cppreference.com/w/cpp/language/memory_model).
+
+### 7.6 jthread(C++20)
+这一部分是额外增加的内容。用来介绍C++20引入的jthread。jthread是C++20引入的新线程类型，可以用来简化线程创建和管理。jthread是jionable thread的缩写。关于jthread的详细介绍，可以看[C++ Reference: std::jthread](https://en.cppreference.com/w/cpp/thread/jthread)。
 
 jthread的创建需要用到`std::jthread`类。它的原型如下：
 ```cpp
@@ -1160,7 +1248,50 @@ template<class F, class... Args>
 std::jthread(F&& f, Args&&... args);
 ```
 
+jthread的特殊之处在于它创建的线程在运行后会自动被join。这样会避免因为用户失误导致的线程泄漏问题。而且jthread还提供了几个额外的函数可以确保线程可以被停止。这些函数是：
+* `request_stop()`：请求停止线程。
+* `join`: 等待线程结束。
+* `detach`: 解除线程与其创建者的关联。
+* `swap`: 交换两个jthread对象。
 
+### 7.7 std::atomic_thread_fence (C++20)
+内存屏障在前面简单介绍过。但是那些主要时在atomic中使用的内存序。但是atomic_thread_fence可以提供更高级的内存屏障。具体内容可以查看[cpp reference: std::atomic_thread_fence](https://en.cppreference.com/w/cpp/atomic/atomic_thread_fence).
+
+为什么需要atomic_thread_fence? 因为atomic的内存顺序只能保证这个atomic变量的内存序，不能保证多个不同变量的操作顺序。
+
+
+
+### 7.8 总结和习题
+本章主要讲了并发编程相关的一些类型。这里不在一一列举。modern c++标准库中定义的这些类型可以方便再不同平台之间移植。比单纯的使用linux下的pthread库要更加安全和易用。
+
+本章的习题主要是对上述内容的巩固和复习。
+
+除了本章现有的内容。若想要了解更过modern C++并发编程相关内容，可以参考[B站现代C++并发编程教程](https://github.com/Mq-b/ModernCpp-ConcurrentProgramming-Tutorial/tree/main)和[另一篇modern c++并发编程教程](https://github.com/zhaocc1106/modern_cpp_concurrent).
+
+习题说明：
+#### 习题1：请编写一个简单的线程池，提供如下功能：
+
+```c
+ThreadPool p(4); // 指定四个工作线程
+
+// 将任务在池中入队，并返回一个 std::future
+auto f = pool.enqueue([](int life) {
+    return meaning;
+}, 42);
+
+// 从 future 中获得执行结果
+std::cout << f.get() << std::endl;
+```
+
+回答：这里你需要知道线程池的基本概念。线程池是一种线程管理技术，它可以用来管理线程的创建和销毁，并提供一个线程池来执行任务。线程池的基本原理是：创建指定数量的线程，并将任务放入队列中。当有空闲线程时，线程池会从队列中取出任务并执行。当所有的线程都在执行任务时，线程池会等待。线程池可以有效地避免资源竞争，提高程序的并发度。线程池顾名思义是使用池化的思想处理任务。比方有一一组任务需要依次执行，但是我们并行处理的任务能力有限（因为硬件资源有限，同时开启太多个线程可能反而会降低系统的性能。）一种方式就是将需要执行的任务排队执行。一个任务执行完毕就将其移除队列，然后从队列中取出任务继续执行。直到所有任务都执行完毕，便进行对待。当需要销毁线程池时再将线程全部销毁。
+
+对不不熟悉线程池的人来说，这个question的难度可能会比较大。建议先阅读一下[一个基于现代C++简单线程池的实现](http://www.ilovecpp.com/2018/11/15/threadpool/)。当然这篇文章没有实现对返回值的观察（std::future）。有一个广受欢迎的库[vit-vit/CTPL](https://github.com/vit-vit/CTPL). [wikipedia](https://en.wikipedia.org/wiki/Thread_pool)对线程池也有介绍。另外还有科研人员提供一个基于C++17的[线程库研究论文](https://translate.google.com/website?sl=auto&tl=zh-CN&hl=zh-CN&client=webapp&u=https://doi.org/10.48550/arXiv.2105.00613),它开源的项目在这里[bshoshany/thread-pool](https://github.com/bshoshany/thread-pool)。
+
+
+#### 习题2：请使用 std::atomic<bool> 实现一个互斥锁
+这个问题我想的比较简单。但是作者的解答用到了内存屏障。看起来我对这部分的理解还是很浅薄。
+
+除了使用std::atomic<bool>外，可以使用std::atomic_flag实现无锁互斥量。
 
 
 
@@ -1168,3 +1299,5 @@ std::jthread(F&& f, Args&&... args);
 * [欧长坤的Modern C++教程页面](https://changkun.de/modern-cpp/)
 * [欧长坤的Modern C++教程仓库](https://github.com/changkun/modern-cpp-tutorial/)
 * [微软modern c++文档](https://learn.microsoft.com/zh-cn/cpp/cpp/welcome-back-to-cpp-modern-cpp?view=msvc-170)
+
+
