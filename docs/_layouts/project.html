@@ -1,0 +1,38 @@
+---
+layout: default
+---
+
+<a href="{{ '/projects/' | relative_url }}" class="back-link">← 返回工程列表</a>
+
+<div class="project-header">
+  <div class="project-icon">{{ page.emoji | default: '📁' }}</div>
+  <div class="project-info">
+    <h1>{{ page.title }}</h1>
+    <p class="brief">{{ page.brief }}</p>
+    {% if page.tags.size > 0 %}
+    <div class="project-tags">{% for tag in page.tags %}<span class="tag">{{ tag }}</span>{% endfor %}</div>
+    {% endif %}
+    <div class="project-meta">
+      <span>📅 {{ page.date | date: "%Y-%m" }} 创建</span>
+      {% assign article_count = site.articles | where_exp: "a", "a.path contains page.article_prefix" | size %}
+      {% if article_count > 0 %}<span>{{ article_count }} 篇文章</span>{% endif %}
+      {% if page.status %}<span>{{ page.status }}</span>{% endif %}
+    </div>
+  </div>
+</div>
+
+<hr style="border:none;border-top:1px solid var(--gray-line);margin:calc(var(--gap)*0.8) 0;">
+
+<div class="section-title">项目文章</div>
+
+{% assign project_articles = site.articles | where_exp: "a", "a.path contains page.article_prefix" | sort: 'date' | reverse %}
+{% if project_articles.size > 0 %}
+  {% include blog_list.html items=project_articles %}
+{% else %}
+  <p style="color:var(--gray-text);font-size:.85rem;">暂无相关文章。</p>
+{% endif %}
+
+<div class="section-title">关于该项目</div>
+<div class="article-body">
+  {{ content }}
+</div>

@@ -1,0 +1,37 @@
+---
+layout: default
+---
+
+<div class="hero">
+  <h1>Hi, I'm <span>{{ site.title }}</span></h1>
+  <p>{{ site.description }}</p>
+  <div class="hero-tags">
+    {% for tag in site.data.tags.featured %}
+    <span class="hero-tag">{{ tag }}</span>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="section-title">
+  📝 最新文章
+  <a href="{{ '/articles/' | relative_url }}" class="more">查看全部 →</a>
+</div>
+
+{% assign latest_articles = site.articles | sort: 'date' | reverse | slice: 0, 5 %}
+{% include blog_list.html items=latest_articles %}
+
+<div class="section-title">
+  ⚙ 最近工程
+  <a href="{{ '/projects/' | relative_url }}" class="more">查看全部 →</a>
+</div>
+
+{% assign latest_projects = site.projects | sort: 'date' | reverse | slice: 0, 4 %}
+{% include project_list.html items=latest_projects %}
+
+<div class="section-title">
+  📚 最近评论
+  <a href="{{ '/reviews/' | relative_url }}" class="more">查看全部 →</a>
+</div>
+
+{% assign latest_reviews = site.reviews | sort: 'date' | reverse | slice: 0, 4 %}
+{% include review_list.html items=latest_reviews %}

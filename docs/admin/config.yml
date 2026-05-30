@@ -1,0 +1,80 @@
+# Decap CMS Configuration
+# Access at https://watershade.github.io/admin/
+
+backend:
+  name: github
+  repo: watershade/watershade.github.io
+  branch: main
+
+media_folder: "docs/assets/images"
+public_folder: "/assets/images"
+
+publish_mode: editorial_workflow
+
+collections:
+  - name: "articles"
+    label: "📝 技术文章"
+    label_singular: "文章"
+    folder: "docs/_articles"
+    create: true
+    slug: "{{year}}-{{month}}-{{day}}-{{slug}}"
+    editor:
+      preview: false
+    fields:
+      - { label: "标题", name: "title", widget: "string" }
+      - { label: "发布日期", name: "date", widget: "datetime", format: "YYYY-MM-DD" }
+      - { label: "分类", name: "category", widget: "select",
+          options: ["ROS2", "MCU", "CAN FD", "Motor Control", "Linux", "IoT", "RTOS", "PL", "Network", "Other"] }
+      - { label: "标签", name: "tags", widget: "list", required: false }
+      - { label: "摘要", name: "description", widget: "text", required: false }
+      - { label: "正文", name: "body", widget: "markdown" }
+
+  - name: "projects"
+    label: "⚙ 个人工程"
+    label_singular: "工程"
+    folder: "docs/_projects"
+    create: true
+    slug: "{{slug}}"
+    editor:
+      preview: false
+    fields:
+      - { label: "工程名称", name: "title", widget: "string" }
+      - { label: "创建日期", name: "date", widget: "datetime", format: "YYYY-MM-DD" }
+      - { label: "Emoji", name: "emoji", widget: "string", required: false }
+      - { label: "封面", name: "cover", widget: "image", required: false }
+      - { label: "简介", name: "brief", widget: "text" }
+      - { label: "技术标签", name: "tags", widget: "list", required: false }
+      - { label: "文章前缀（用于关联文章）", name: "article_prefix", widget: "string", hint: "如: robot-dog，_articles/中路径包含此值的文章会自动关联" }
+      - { label: "状态", name: "status", widget: "select", options: ["持续中", "已完成", "暂停"], required: false }
+      - { label: "详细说明", name: "body", widget: "markdown", required: false }
+
+  - name: "reviews"
+    label: "📚 评论"
+    label_singular: "评论"
+    folder: "docs/_reviews"
+    create: true
+    slug: "{{slug}}"
+    editor:
+      preview: false
+    fields:
+      - { label: "标题（书名/课程名）", name: "title", widget: "string" }
+      - { label: "类型", name: "type", widget: "select", options: ["book", "course"] }
+      - { label: "日期", name: "date", widget: "datetime", format: "YYYY-MM-DD" }
+      - { label: "Emoji / 封面标签", name: "cover_label", widget: "string", required: false }
+      - { label: "封面颜色", name: "cover_color", widget: "string", required: false, hint: "CSS gradient值，如 linear-gradient(135deg,#2d3436,#636e72)" }
+      - { label: "简介", name: "brief", widget: "text" }
+      - { label: "正文", name: "body", widget: "markdown" }
+
+  - name: "thoughts"
+    label: "💭 思考"
+    label_singular: "思考"
+    folder: "docs/_thoughts"
+    create: true
+    slug: "{{year}}-{{month}}-{{day}}-{{slug}}"
+    editor:
+      preview: false
+    fields:
+      - { label: "标题", name: "title", widget: "string" }
+      - { label: "发布日期", name: "date", widget: "datetime", format: "YYYY-MM-DD" }
+      - { label: "精选（显示★标记）", name: "star", widget: "boolean", required: false, default: false }
+      - { label: "正文", name: "body", widget: "markdown" }

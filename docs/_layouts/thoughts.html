@@ -1,0 +1,28 @@
+---
+layout: default
+---
+
+<div class="page-title">💭 思考</div>
+<p class="page-subtitle">技术之外的一些想法和感悟，关于工程、学习和开发者生涯。</p>
+
+{% assign thoughts_by_year = site.thoughts | sort: 'date' | reverse | group_by_exp: "item", "item.date | date: '%Y'" %}
+{% for year in thoughts_by_year %}
+<div class="blog-year">{{ year.name }}</div>
+{% for item in year.items %}
+<div class="blog-item">
+  <span class="date">{{ item.date | date: "%m-%d" }}</span>
+  <a href="{{ item.url | relative_url }}" class="title">{% if item.star %}<span class="star">★</span>{% endif %}{{ item.title }}</a>
+  {% if item.tags.size > 0 %}
+  <span class="tags">
+    {% for tag in item.tags limit:3 %}
+    <span class="tag">{{ tag }}</span>
+    {% endfor %}
+  </span>
+  {% endif %}
+</div>
+{% endfor %}
+{% endfor %}
+
+<p class="page-subtitle" style="margin-top:2rem;">
+  📌 如果你想要查看过失记录和自我反省，请移步 <a href="{{ '/知非/' | relative_url }}">知非</a>。
+</p>

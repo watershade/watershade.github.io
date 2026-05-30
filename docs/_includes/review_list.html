@@ -1,0 +1,17 @@
+{% for item in include.items %}
+<a class="review-card" href="{{ item.url | relative_url }}" data-type="{% if item.type == 'book' %}book{% else %}course{% endif %}">
+  <div class="review-cover" style="background:{{ item.cover_color | default: 'linear-gradient(135deg,#2d3436,#636e72)' }};">
+    {{ item.cover_label | default: item.title | truncate: 12 }}
+  </div>
+  <div class="review-body">
+    <div class="review-name">{{ item.title }}</div>
+    <div class="review-brief">{{ item.brief }}</div>
+    <div class="review-meta">
+      <span class="review-badge {% if item.type == 'book' %}book{% else %}course{% endif %}">
+        {% if item.type == 'book' %}📖 书籍{% else %}🎓 课程{% endif %}
+      </span>
+      <span>⭐ {{ item.date | date: "%Y-%m" }}</span>
+    </div>
+  </div>
+</a>
+{% endfor %}

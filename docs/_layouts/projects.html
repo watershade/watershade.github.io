@@ -1,0 +1,9 @@
+---
+layout: default
+---
+
+<div class="page-title">⚙ 个人工程</div>
+<p class="page-subtitle">每个工程都是一个持续演进的独立项目，按创建时间排序。</p>
+
+{% assign sorted_projects = site.projects | sort: 'date' | reverse %}
+{% include project_list.html items=sorted_projects %}

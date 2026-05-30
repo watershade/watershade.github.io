@@ -1,0 +1,23 @@
+featured:
+  - Embedded Linux
+  - ROS2
+  - STM32 / ARM Cortex
+  - CAN / CAN FD
+  - FOC 电机控制
+  - C/C++ / Rust
+  - IoT / MQTT
+  - RTOS
+
+about:
+  - Embedded Linux
+  - RTOS (FreeRTOS / VxWorks)
+  - ARM Cortex-M / STM32
+  - ROS2
+  - CAN / CAN FD
+  - FOC 电机控制
+  - C / C++
+  - Rust
+  - Python
+  - IoT / MQTT
+  - FPGA
+  - 运动规划

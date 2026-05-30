@@ -1,0 +1,59 @@
+---
+layout: default
+---
+
+<div class="page-title">🔍 知非</div>
+<p class="page-subtitle">行年五十而知四十九年非。记录自己犯过的错、走过的弯路。知非，方能改过。</p>
+
+{% assign zhifei_by_year = site.zhifei | sort: 'date' | reverse | group_by_exp: "item", "item.date | date: '%Y'" %}
+{% assign years = site.zhifei | sort: 'date' | reverse | map: 'date' | map: 'year' | uniq %}
+
+<div class="filter-bar filter-bar-year">
+  <span class="filter-label">年份：</span>
+  <button class="filter-btn filter-year active" data-year="all">全部</button>
+  {% for year in years %}
+  <button class="filter-btn filter-year" data-year="{{ year }}">{{ year }}</button>
+  {% endfor %}
+</div>
+
+{% for year in zhifei_by_year %}
+<div class="blog-year-group" data-year-group="{{ year.name }}">
+<div class="blog-year">{{ year.name }}（{{ year.items | size }} 篇）</div>
+{% for item in year.items %}
+<div class="blog-item" data-year="{{ item.date | date: '%Y' }}">
+  <span class="date">{{ item.date | date: "%m-%d" }}</span>
+  <a href="{{ item.url | relative_url }}" class="title">{% if item.star %}<span class="star">★</span>{% endif %}{{ item.title }}</a>
+  {% if item.tags.size > 0 %}
+  <span class="tags">
+    {% for tag in item.tags limit:3 %}
+    <span class="tag">{{ tag }}</span>
+    {% endfor %}
+  </span>
+  {% endif %}
+</div>
+{% endfor %}
+</div>
+{% endfor %}
+
+<script>
+(function() {
+  document.querySelectorAll('.filter-year').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.filter-year').forEach(function(b) { b.classList.remove('active'); });
+      this.classList.add('active');
+      var year = this.dataset.year;
+
+      document.querySelectorAll('.blog-year-group').forEach(function(group) {
+        var items = group.querySelectorAll('.blog-item');
+        var visibleCount = 0;
+        items.forEach(function(item) {
+          var visible = year === 'all' || item.dataset.year === year;
+          item.style.display = visible ? 'flex' : 'none';
+          if (visible) visibleCount++;
+        });
+        group.style.display = visibleCount > 0 ? '' : 'none';
+      });
+    });
+  });
+})();
+</script>

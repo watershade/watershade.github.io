@@ -1,0 +1,35 @@
+---
+layout: default
+---
+
+<div class="about-header">
+  <div class="about-avatar">{{ site.title | slice: 0, 1 | upcase }}</div>
+  <div class="about-info">
+    <h1>{{ site.title }}</h1>
+    <div class="title">嵌入式软件工程师 · 机器人爱好者</div>
+    <div class="links">
+      <a href="mailto:{{ site.email }}">✉ {{ site.email }}</a>
+      <a href="https://github.com/{{ site.github_username }}">🐙 github.com/{{ site.github_username }}</a>
+    </div>
+  </div>
+</div>
+
+<hr style="border:none;border-top:1px solid var(--gray-line);margin:calc(var(--gap)*0.8) 0;">
+
+<div class="section-title">个人简介</div>
+<div class="about-text">
+  {{ content }}
+</div>
+
+<div class="section-title">技术兴趣</div>
+<div class="interest-grid">
+  {% for tag in site.data.tags.about %}
+  <span class="interest-tag">{{ tag }}</span>
+  {% endfor %}
+</div>
+
+<div class="section-title">关于本站</div>
+<div class="about-text gray">
+  <p>本站使用 Jekyll 构建，托管于 GitHub Pages。所有文章均为个人原创或学习笔记，转载请注明出处。</p>
+  <p>如果你有任何问题或建议，欢迎在 <a href="https://github.com/{{ site.github_username }}/{{ site.github_username }}.github.io/issues">GitHub Issues</a> 中提出。</p>
+</div>

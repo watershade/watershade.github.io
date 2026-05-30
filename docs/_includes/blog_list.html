@@ -1,0 +1,17 @@
+{% assign items_by_year = include.items | sort: 'date' | reverse | group_by_exp: "item", "item.date | date: '%Y'" %}
+{% for year in items_by_year %}
+<div class="blog-year">{{ year.name }}</div>
+{% for item in year.items %}
+<div class="blog-item" data-category="{{ item.category | slugify }}">
+  <span class="date">{{ item.date | date: "%m-%d" }}</span>
+  <a href="{{ item.url | relative_url }}" class="title">{{ item.title }}</a>
+  {% if item.tags.size > 0 %}
+  <span class="tags">
+    {% for tag in item.tags limit:3 %}
+    <span class="tag">{{ tag }}</span>
+    {% endfor %}
+  </span>
+  {% endif %}
+</div>
+{% endfor %}
+{% endfor %}

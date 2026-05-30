@@ -1,0 +1,99 @@
+---
+layout: default
+---
+
+<div class="page-title">📝 技术文章</div>
+<p class="page-subtitle">嵌入式、机器人、操作系统、硬件设计等相关技术笔记。（共 {{ site.articles | size }} 篇）</p>
+
+{% assign categories = site.articles | map: 'category' | compact | uniq | sort %}
+{% assign years = site.articles | sort: 'date' | reverse | map: 'date' | map: 'year' | uniq %}
+
+<div class="filter-bar">
+  <span class="filter-label">分类：</span>
+  <button class="filter-btn active" data-filter="all">全部</button>
+  {% for cat in categories %}
+  {% if cat != "" %}
+  <button class="filter-btn" data-filter="{{ cat | slugify }}">{{ cat }}</button>
+  {% endif %}
+  {% endfor %}
+</div>
+
+<div class="filter-bar filter-bar-year">
+  <span class="filter-label">年份：</span>
+  <button class="filter-btn filter-year active" data-year="all">全部</button>
+  {% for year in years %}
+  <button class="filter-btn filter-year" data-year="{{ year }}">{{ year }}</button>
+  {% endfor %}
+</div>
+
+{% assign articles_by_year = site.articles | sort: 'date' | reverse | group_by_exp: "item", "item.date | date: '%Y'" %}
+{% for year in articles_by_year %}
+<div class="blog-year-group" data-year-group="{{ year.name }}">
+<div class="blog-year">{{ year.name }}（{{ year.items | size }} 篇）</div>
+{% for item in year.items %}
+<div class="blog-item" data-category="{{ item.category | slugify }}" data-year="{{ item.date | date: '%Y' }}">
+  <span class="date">{{ item.date | date: "%m-%d" }}</span>
+  <a href="{{ item.url | relative_url }}" class="title">{{ item.title }}</a>
+  {% if item.tags.size > 0 %}
+  <span class="tags">
+    {% for tag in item.tags limit:3 %}
+    <span class="tag">{{ tag }}</span>
+    {% endfor %}
+  </span>
+  {% endif %}
+</div>
+{% endfor %}
+</div>
+{% endfor %}
+
+<script>
+(function() {
+  var activeCat = 'all';
+  var activeYear = 'all';
+
+  // Category filtering
+  document.querySelectorAll('.filter-bar:not(.filter-bar-year) .filter-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.filter-bar:not(.filter-bar-year) .filter-btn').forEach(function(b) { b.classList.remove('active'); });
+      this.classList.add('active');
+      activeCat = this.dataset.filter;
+      applyFilters();
+    });
+  });
+
+  // Year filtering
+  document.querySelectorAll('.filter-year').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.filter-year').forEach(function(b) { b.classList.remove('active'); });
+      this.classList.add('active');
+      activeYear = this.dataset.year;
+      applyFilters();
+    });
+  });
+
+  function applyFilters() {
+    var groups = document.querySelectorAll('.blog-year-group');
+
+    groups.forEach(function(group) {
+      var groupYear = group.dataset.yearGroup;
+      var items = group.querySelectorAll('.blog-item');
+      var visibleCount = 0;
+
+      items.forEach(function(item) {
+        var matchesCat = activeCat === 'all' || item.dataset.category === activeCat;
+        var matchesYear = activeYear === 'all' || item.dataset.year === activeYear;
+        var visible = matchesCat && matchesYear;
+        item.style.display = visible ? 'flex' : 'none';
+        if (visible) visibleCount++;
+      });
+
+      // Show/hide the year group header based on whether it has visible items
+      if (activeYear === 'all' && activeCat === 'all') {
+        group.style.display = '';
+      } else {
+        group.style.display = visibleCount > 0 ? '' : 'none';
+      }
+    });
+  }
+})();
+</script>

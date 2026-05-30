@@ -1,0 +1,7 @@
+_site/
+vendor/
+.bundle/
+*.swp
+*.swo
+*~
+.DS_Store

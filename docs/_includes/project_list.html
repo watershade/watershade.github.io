@@ -1,0 +1,13 @@
+{% for item in include.items %}
+<a class="project-card" href="{{ item.url | relative_url }}">
+  <div class="project-icon">{{ item.emoji | default: '📁' }}</div>
+  <div class="project-info">
+    <div class="project-name">{{ item.title }}</div>
+    <div class="project-brief">{{ item.brief }}</div>
+    {% if item.tags.size > 0 %}
+    <div class="project-tags">{% for tag in item.tags limit:4 %}<span class="tag">{{ tag }}</span>{% endfor %}</div>
+    {% endif %}
+    <div class="project-meta">📅 {{ item.date | date: "%Y-%m" }} 创建</div>
+  </div>
+</a>
+{% endfor %}

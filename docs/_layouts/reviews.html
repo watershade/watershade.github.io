@@ -1,0 +1,35 @@
+---
+layout: default
+---
+
+<div class="page-title">📚 评论</div>
+<p class="page-subtitle">阅读过的技术书籍和学习过的课程，记录个人理解和评价。</p>
+
+{% assign books = site.reviews | where: "type", "book" | sort: 'date' | reverse %}
+{% assign courses = site.reviews | where_exp: "r", "r.type != 'book'" | sort: 'date' | reverse %}
+
+<div class="filter-bar">
+  <button class="filter-btn active" data-filter="all">全部</button>
+  <button class="filter-btn" data-filter="book">📖 书籍</button>
+  <button class="filter-btn" data-filter="course">🎓 课程</button>
+</div>
+
+{% assign all_reviews = site.reviews | sort: 'date' | reverse %}
+{% include review_list.html items=all_reviews %}
+
+<script>
+document.querySelectorAll('.filter-bar .filter-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.filter-bar .filter-btn').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+    const filter = this.dataset.filter;
+    document.querySelectorAll('.review-card').forEach(item => {
+      if (filter === 'all' || item.dataset.type === filter) {
+        item.style.display = 'flex';
+      } else {
+        item.style.display = 'none';
+      }
+    });
+  });
+});
+</script>

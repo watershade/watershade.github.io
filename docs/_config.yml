@@ -1,0 +1,85 @@
+# Welcome to Jekyll!
+#
+# Site settings
+title: watershade
+email: zjh.2008.09@gmail.com
+description: >-
+  一个嵌入式软件工程师的实践笔记。
+  关注机器人、实时系统、底层软件与硬件设计。
+baseurl: ""
+url: "https://watershade.github.io"
+github_username: watershade
+
+# Build settings
+markdown: kramdown
+permalink: /:collection/:title/
+
+# Collections
+collections:
+  articles:
+    output: true
+    permalink: /articles/:title/
+  projects:
+    output: true
+    permalink: /projects/:title/
+  reviews:
+    output: true
+    permalink: /reviews/:title/
+  thoughts:
+    output: true
+    permalink: /thoughts/:title/
+  zhifei:
+    output: true
+    permalink: /知非/:title/
+
+# Defaults
+defaults:
+  - scope:
+      path: ""
+      type: articles
+    values:
+      layout: article
+      category: ""
+      tags: []
+      description: ""
+  - scope:
+      path: ""
+      type: projects
+    values:
+      layout: project
+      brief: ""
+      tags: []
+  - scope:
+      path: ""
+      type: reviews
+    values:
+      layout: article
+      type: book
+      brief: ""
+  - scope:
+      path: ""
+      type: thoughts
+    values:
+      layout: article
+  - scope:
+      path: ""
+      type: zhifei
+    values:
+      layout: article
+      category: 知非
+
+# Plugins
+plugins:
+  - jekyll-feed
+  - jekyll-sitemap
+
+# Exclude
+exclude:
+  - .sass-cache/
+  - .jekyll-cache/
+  - gemfiles/
+  - Gemfile
+  - Gemfile.lock
+  - node_modules/
+  - vendor/
+  - .gitignore

@@ -1,0 +1,46 @@
+---
+layout: default
+---
+
+<div style="font-size:.78rem;color:var(--gray-text);margin-bottom:8px;">
+  <a href="{{ '/articles/' | relative_url }}" style="color:var(--accent);text-decoration:none;">← 返回文章列表</a>
+  {% if page.category %}<span style="margin:0 4px;">/</span><span>{{ page.category }}</span>{% endif %}
+</div>
+
+<div class="article-header">
+  <h1>{{ page.title }}</h1>
+  <div class="article-meta">
+    <span>{{ page.date | date: "%Y-%m-%d" }}</span>
+    {% if page.category %}
+    <span class="dot"></span>
+    <span>{{ page.category }}</span>
+    {% endif %}
+    <span class="dot"></span>
+    <span>阅读约 {{ content | number_of_words | divided_by: 300 | plus: 1 }} 分钟</span>
+    {% if page.tags.size > 0 %}
+    <span class="dot"></span>
+    {% for tag in page.tags %}
+    <span class="tag">{{ tag }}</span>
+    {% endfor %}
+    {% endif %}
+  </div>
+</div>
+
+<div class="article-body">
+  {{ content }}
+</div>
+
+<div class="article-nav">
+  {% if page.previous %}
+  <div class="prev">
+    <div class="gray">← 上一篇</div>
+    <a href="{{ page.previous.url | relative_url }}">{{ page.previous.title }}</a>
+  </div>
+  {% endif %}
+  {% if page.next %}
+  <div class="next">
+    <div class="gray">下一篇 →</div>
+    <a href="{{ page.next.url | relative_url }}">{{ page.next.title }}</a>
+  </div>
+  {% endif %}
+</div>
