@@ -1,3 +1,9 @@
 <footer class="footer">
-  <p>© {{ site.time | date: '%Y' }} <a href="{{ '/' | relative_url }}">{{ site.title }}</a> · Built with Jekyll · Hosted on GitHub Pages</p>
+  <p>© {{ site.time | date: '%Y' }} <a href="{{ '/' | relative_url }}">{{ site.title }}</a> · Built with Jekyll · {% if site.icp %}xsspace.cn{% else %}Hosted on GitHub Pages{% endif %}</p>
+  {%- if site.icp %}
+  <p class="footer-icp"><a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener nofollow">{{ site.icp }}</a></p>
+  {%- endif %}
+  {%- if site.gongan %}
+  <p class="footer-gongan"><a href="https://beian.mps.gov.cn/" target="_blank" rel="noopener nofollow">{{ site.gongan }}</a></p>
+  {%- endif %}
 </footer>

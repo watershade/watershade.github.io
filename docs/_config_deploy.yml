@@ -1,0 +1,13 @@
+# 仅用于「部署到自有服务器 xsspace.cn」时的配置覆盖。
+# 用法: bundle exec jekyll build --config _config.yml,_config_deploy.yml
+# 作用: 把站点的绝对 URL（sitemap.xml / robots.txt / feed.xml / canonical 等）
+#       的域名从 watershade.github.io 换成 xsspace.cn。
+# 说明: GitHub Pages 构建时只读 _config.yml，不读本文件，
+#       因此 GitHub Pages 站点的内链/绝对地址仍指向 watershade.github.io，互不影响。
+url: "https://xsspace.cn"
+
+# --- 页脚备案信息（只在 xsspace.cn 显示；GitHub Pages 不受影响）---
+icp: "粤ICP备2026073004号-1"
+
+# 如需公安联网备案号（可选），取消注释并填写:
+# gongan: "粤公网安备44030002000000号"

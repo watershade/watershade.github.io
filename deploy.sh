@@ -35,13 +35,13 @@ if [ ! -f "$SSH_KEY" ]; then
     exit 1
 fi
 
-# 尝试加载 bundle (可能安装在 gem 用户目录)
+# 尝试加载 bundle (自动探测 gem 用户目录，避免写死 Ruby 版本)
+if command -v ruby &> /dev/null; then
+    export PATH="$(ruby -e 'print Gem.user_dir' 2>/dev/null)/bin:$PATH"
+fi
 if ! command -v bundle &> /dev/null; then
-    export PATH="$HOME/.local/share/gem/ruby/3.2.0/bin:$PATH"
-    if ! command -v bundle &> /dev/null; then
-        error "未找到 bundle 命令，请先安装 bundler"
-        exit 1
-    fi
+    error "未找到 bundle 命令，请先安装 bundler"
+    exit 1
 fi
 
 if [ ! -d "$SITE_DIR" ]; then
@@ -54,13 +54,12 @@ SSH_OPTS="-i $SSH_KEY -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/nul
 # ========== 1. 构建 ==========
 info "🔨 构建静态站点..."
 cd "$SITE_DIR"
-export PATH="$HOME/.local/share/gem/ruby/3.2.0/bin:$PATH"
-bundle exec jekyll build
-
-BUILD_STATUS=$?
-if [ $BUILD_STATUS -ne 0 ]; then
+# 部署到自有服务器时，额外叠加 _config_deploy.yml（把 url 覆盖为 xsspace.cn）
+BUILD_CONF="_config.yml"
+[ -f _config_deploy.yml ] && BUILD_CONF="_config.yml,_config_deploy.yml"
+if ! bundle exec jekyll build --config "$BUILD_CONF"; then
     error "构建失败，请检查错误日志"
-    exit $BUILD_STATUS
+    exit 1
 fi
 info "✅ 构建完成"
 
@@ -68,21 +67,18 @@ info "✅ 构建完成"
 info "📦 上传到 $REMOTE_HOST:$REMOTE_PATH"
 info "   建议: 首次部署前请备份服务器现有文件"
 
-rsync -avz --delete \
+if ! rsync -avz --delete --exclude='.user.ini' \
     -e "ssh $SSH_OPTS -p $REMOTE_PORT" \
     "$SITE_DIR/_site/" \
-    "$REMOTE_USER@$REMOTE_HOST:$REMOTE_PATH"
-
-RSYNC_STATUS=$?
-if [ $RSYNC_STATUS -ne 0 ]; then
-    error "上传失败 (rsync exit code: $RSYNC_STATUS)"
-    exit $RSYNC_STATUS
+    "$REMOTE_USER@$REMOTE_HOST:$REMOTE_PATH"; then
+    error "上传失败，请检查上面的 rsync 输出"
+    exit 1
 fi
 
 # ========== 3. 设置权限 ==========
 info "🔧 设置文件权限..."
 ssh $SSH_OPTS -p $REMOTE_PORT "$REMOTE_USER@$REMOTE_HOST" \
-    "chown -R www:www $REMOTE_PATH && find $REMOTE_PATH -type d -exec chmod 755 {} \; && find $REMOTE_PATH -type f -exec chmod 644 {} \;"
+    "chown -R www:www $REMOTE_PATH 2>/dev/null; find $REMOTE_PATH -type d -exec chmod 755 {} \; ; find $REMOTE_PATH -type f -exec chmod 644 {} \; ; true"
 
 echo ""
 info "🎉 部署完成！"
