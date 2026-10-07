@@ -180,6 +180,9 @@ body{
 .article-body blockquote{border-left:3px solid var(--accent);padding:6px 12px;margin:calc(var(--gap)*0.5)0;background:var(--accent-light);border-radius:0 var(--radius) var(--radius) 0;color:var(--text);font-size:.88rem;}
 .article-body blockquote p{margin-bottom:0;}
 .article-body img{max-width:100%;border-radius:var(--radius);margin:calc(var(--gap)*0.5)0;}
+.article-body figure{margin:calc(var(--gap)*0.8) 0;text-align:center;}
+.article-body figure img{display:block;margin:0 auto;max-width:100%;height:auto;}
+.article-body figcaption{font-size:.78rem;color:var(--gray-text);margin-top:calc(var(--gap)*0.4);line-height:1.5;}
 .article-body hr{border:none;border-top:1px solid var(--gray-line);margin:calc(var(--gap))0;}
 .article-body table{width:100%;border-collapse:collapse;font-size:.85rem;margin-bottom:calc(var(--gap)*0.5);}
 .article-body th,.article-body td{border:1px solid var(--gray-line);padding:6px 10px;text-align:left;}
